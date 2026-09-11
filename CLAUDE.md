@@ -45,7 +45,7 @@ src/
 ├── routes/        Router definitions mapping paths to controllers
 ├── services/      Business logic and all data access
 ├── types/         Models — interfaces, types, enums
-├── utils/         Pure helpers
+├── lib/           Pure helpers and app-wide constants
 ├── app.ts         Express app assembly
 └── server.ts      Port binding only
 ```
@@ -84,9 +84,10 @@ src/
 - **Put here** — anything with a shape: domain models, request/response bodies. Keep shared models identical to the frontend's `types/`.
 - **Naming** — `PascalCase`, **no `I` prefix**. Files are `xxx.types.ts`.
 
-### `utils/`
+### `lib/`
 
-- **Put here** — pure functions with no I/O and no Express import.
+- **Put here** — pure functions with no I/O and no Express import, plus static constants shared across services (magic numbers, fixed durations, static lookups). Named to match the frontend's `lib/` for the same kind of content.
+- **Naming** — `camelCase.ts`, grouped by subject (`date.ts`, `constants.ts`).
 
 ## 5. Request flow
 
