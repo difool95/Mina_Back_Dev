@@ -46,8 +46,9 @@ src/
 ├── services/      Business logic and all data access
 ├── types/         Models — interfaces, types, enums
 ├── lib/           Pure helpers and app-wide constants
+├── jobs/          Scheduled work, started by server.ts
 ├── app.ts         Express app assembly
-└── server.ts      Port binding only
+└── server.ts      Port binding and starting the jobs
 ```
 
 ## 4. Folder rules
@@ -87,7 +88,15 @@ src/
 ### `lib/`
 
 - **Put here** — pure functions with no I/O and no Express import, plus static constants shared across services (magic numbers, fixed durations, static lookups). Named to match the frontend's `lib/` for the same kind of content.
-- **Naming** — `camelCase.ts`, grouped by subject (`date.ts`, `constants.ts`).
+- **Every constant the app leans on belongs in `lib/constants.ts`** — a bonus, a lifetime, an hour, a timezone. Never leave one sitting at the top of the file that happens to use it first: a value that matters is read in one place, not hunted for. The same goes for the helpers around them — a function worth naming goes in a `lib/` file by subject, not inline in its only caller.
+- **Naming** — `camelCase.ts`, grouped by subject (`date.ts`, `clock.ts`, `constants.ts`).
+
+### `jobs/`
+
+- **Put here** — work the clock triggers rather than a request. A job schedules itself and calls a service, exactly as a controller does.
+- **Never here** — `req` or `res`, and no HTTP call to this API's own routes: a job is already inside the process, so it calls the service directly.
+- Started from `server.ts`, never `app.ts`, so importing the app opens no sockets and starts no timers.
+- **Naming** — `xxx.job.ts`, matching the domain it sweeps.
 
 ## 5. Request flow
 

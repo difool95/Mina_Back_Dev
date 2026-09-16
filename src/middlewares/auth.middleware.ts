@@ -1,7 +1,5 @@
-import { timingSafeEqual } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
 
-import { env } from '../config/env.js'
 import { supabase } from '../services/supabase.client.js'
 
 declare global {
@@ -35,18 +33,5 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
   }
 
   req.userId = data.user.id
-  next()
-}
-
-/** Guards the endpoints a scheduler calls, which carry no user session. */
-export function requireCronSecret(req: Request, res: Response, next: NextFunction) {
-  const provided = Buffer.from(req.get('x-cron-secret') ?? '')
-  const expected = Buffer.from(env.CRON_SECRET)
-
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
-    res.status(401).json({ error: 'Invalid cron secret' })
-    return
-  }
-
   next()
 }

@@ -9,7 +9,5 @@ export const env = z
     SUPABASE_URL: z.string().url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     CORS_ORIGIN: z.string().url(),
-    // Shared secret for the expiry sweep, which runs unauthenticated by a scheduler.
-    CRON_SECRET: z.string().min(1),
   })
   .parse(process.env)
