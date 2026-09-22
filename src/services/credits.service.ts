@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { LOT_LIFETIME_MONTHS, SIGNUP_BONUS } from '../lib/constants.js'
 import { addMonths } from '../lib/date.js'
+import type { MmaPreferences } from '../types/customer.types.js'
 import type {
   CreditLot,
   CreditTransactionMeta,
@@ -120,59 +121,79 @@ export async function grantSignupBonus(userId: string): Promise<SignupBonusResul
   return { granted: true, credits: creditsAfter }
 }
 
-/**
- * Credits a customer for one paid Stripe checkout session, once and only
- * once — Stripe retries webhook delivery, so `sessionId` doubles as the
- * idempotency key the same way `free_signup` does for the signup bonus.
- *
- * Unlike the signup bonus, a purchase must not overwrite whatever the
- * customer already holds: the new lot is appended to `mg_credit_lots`, and
- * `mg_expires_at` only ever moves later, never earlier.
- *
- * Writes two ledger rows, the same as every other Stripe purchase already in
- * the table: the `credit_transaction` itself, and a `webhook_event` row
- * recording that this delivery was processed (its own id is what a retried
- * delivery would otherwise have no way to be told apart from).
- */
-export async function addPurchasedCredits(
-  passId: string,
-  matchas: number,
-  sessionId: string,
-): Promise<PurchaseFulfillmentResult> {
+interface CreditFulfillmentParams {
+  passId: string
+  matchas: number
+  /** The Stripe id this fulfillment is keyed on — a checkout session id or a payment intent id. */
+  refId: string
+  refType: string
+  reason: string
+  /** The Stripe event type that triggered this, recorded in the webhook_event row's meta. */
+  eventType: string
+  /** What the webhook_event row's `mg_meta` calls `refId` — a purchase's is a session, an auto-refill's a payment intent. */
+  refIdMetaKey: string
+}
+
+interface CreditFulfillmentOutcome {
+  applied: boolean
+  creditsBefore: number
+  creditsAfter: number
+  nextExpiresAt: string
+  lots: CreditLot[]
+  at: string
+  mmaPreferences: MmaPreferences | null
+}
+
+// THIS METHOD HANDLES THE CREDIT FULFILLMENT FOR BOTH PURCHASED CREDITS AND AUTO REFILL CREDITS, 
+// IT CHECKS IF THE CREDITS HAVE ALREADY BEEN APPLIED AND IF NOT, 
+// IT APPLIES THEM AND RECORDS THE TRANSACTION IN THE LEDGER
+async function applyCreditFulfillment(params: CreditFulfillmentParams): Promise<CreditFulfillmentOutcome> {
   const { data: customer, error: customerError } = await supabase
     .from('mega_customers')
-    .select('mg_email, mg_credits, mg_credit_lots, mg_expires_at')
-    .eq('mg_pass_id', passId)
+    .select('mg_email, mg_credits, mg_credit_lots, mg_expires_at, mg_mma_preferences')
+    .eq('mg_pass_id', params.passId)
     .maybeSingle()
 
   if (customerError) throw new Error(customerError.message)
-  if (!customer) throw new Error(`No mega_customers row for ${passId}`)
+  if (!customer) throw new Error(`No mega_customers row for ${params.passId}`)
 
   const { data: alreadyFulfilled, error: ledgerError } = await supabase
     .from('mega_generations')
     .select('mg_id')
     .eq('mg_record_type', 'credit_transaction')
-    .eq('mg_ref_type', 'stripe_checkout')
-    .eq('mg_ref_id', sessionId)
+    .eq('mg_ref_type', params.refType)
+    .eq('mg_ref_id', params.refId)
     .limit(1)
     .maybeSingle()
 
   if (ledgerError) throw new Error(ledgerError.message)
 
   const creditsBefore = Number(customer.mg_credits ?? 0)
+  const existingLots = Array.isArray(customer.mg_credit_lots) ? (customer.mg_credit_lots as CreditLot[]) : []
+  const nextExpiresAtIfUnfulfilled = customer.mg_expires_at ?? ''
 
-  if (alreadyFulfilled) return { credited: false, credits: creditsBefore }
+  if (alreadyFulfilled) {
+    return {
+      applied: false,
+      creditsBefore,
+      creditsAfter: creditsBefore,
+      nextExpiresAt: nextExpiresAtIfUnfulfilled,
+      lots: existingLots,
+      at: '',
+      mmaPreferences: (customer.mg_mma_preferences as MmaPreferences | null) ?? null,
+    }
+  }
 
   const at = new Date().toISOString()
   const expiresAt = addMonths(at, LOT_LIFETIME_MONTHS)
-  const creditsAfter = creditsBefore + matchas
+  const creditsAfter = creditsBefore + params.matchas
 
   await recordTransaction({
-    passId,
-    delta: matchas,
-    reason: 'stripe-checkout',
-    refType: 'stripe_checkout',
-    refId: sessionId,
+    passId: params.passId,
+    delta: params.matchas,
+    reason: params.reason,
+    refType: params.refType,
+    refId: params.refId,
     source: 'stripe',
     meta: { expires_at: expiresAt, credits_after: creditsAfter, credits_before: creditsBefore },
     at,
@@ -186,51 +207,122 @@ export async function addPurchasedCredits(
   const { error: webhookError } = await supabase.from('mega_generations').insert({
     mg_id: `webhook_event:${requestId}`,
     mg_record_type: 'webhook_event',
-    mg_pass_id: passId,
+    mg_pass_id: params.passId,
     mg_status: 'succeeded',
     mg_meta: {
       email: customer.mg_email,
       balance: creditsAfter,
-      credited: matchas,
-      event_type: 'checkout.session.completed',
+      credited: params.matchas,
+      event_type: params.eventType,
       request_id: requestId,
-      session_id: sessionId,
+      [params.refIdMetaKey]: params.refId,
     },
     mg_event_at: webhookAt,
     mg_created_at: webhookAt,
     mg_updated_at: webhookAt,
     mg_source: 'stripe',
-    mg_ref_type: 'stripe_checkout',
-    mg_ref_id: sessionId,
+    mg_ref_type: params.refType,
+    mg_ref_id: params.refId,
   })
 
   if (webhookError) throw new Error(webhookError.message)
 
   const lot: CreditLot = {
-    amount: matchas,
-    ref_id: sessionId,
-    ref_type: 'stripe_checkout',
+    amount: params.matchas,
+    ref_id: params.refId,
+    ref_type: params.refType,
     created_at: at,
     expires_at: expiresAt,
   }
 
-  const existingLots = Array.isArray(customer.mg_credit_lots) ? (customer.mg_credit_lots as CreditLot[]) : []
   const nextExpiresAt =
     customer.mg_expires_at && customer.mg_expires_at > expiresAt ? customer.mg_expires_at : expiresAt
 
+  return {
+    applied: true,
+    creditsBefore,
+    creditsAfter,
+    nextExpiresAt,
+    lots: [...existingLots, lot],
+    at,
+    mmaPreferences: (customer.mg_mma_preferences as MmaPreferences | null) ?? null,
+  }
+}
+
+//THIS METHOD HANDLES THE CREDIT FULFILLMENT FOR PURCHASED CREDITS, IT CHECKS IF THE CREDITS HAVE ALREADY BEEN APPLIED AND IF NOT,
+// IT APPLIES THEM AND RECORDS THE TRANSACTION IN THE LEDGER
+export async function addPurchasedCredits(
+  passId: string,
+  matchas: number,
+  sessionId: string,
+): Promise<PurchaseFulfillmentResult> {
+  const outcome = await applyCreditFulfillment({
+    passId,
+    matchas,
+    refId: sessionId,
+    refType: 'stripe_checkout',
+    reason: 'stripe-checkout',
+    eventType: 'checkout.session.completed',
+    refIdMetaKey: 'session_id',
+  })
+
+  if (!outcome.applied) return { credited: false, credits: outcome.creditsBefore }
+
+  // The `mega_customers` update is the last step of fulfillment, so it can
   const { error } = await supabase
     .from('mega_customers')
     .update({
-      mg_credits: creditsAfter,
-      mg_expires_at: nextExpiresAt,
-      mg_credit_lots: [...existingLots, lot],
-      mg_updated_at: at,
+      mg_credits: outcome.creditsAfter,
+      mg_expires_at: outcome.nextExpiresAt,
+      mg_credit_lots: outcome.lots,
+      mg_updated_at: outcome.at,
     })
     .eq('mg_pass_id', passId)
 
   if (error) throw new Error(error.message)
 
-  return { credited: true, credits: creditsAfter }
+  return { credited: true, credits: outcome.creditsAfter }
+}
+
+//THIS METHOD HANDLES THE CREDIT FULFILLMENT FOR AUTO REFILL CREDITS, IT CHECKS IF THE CREDITS HAVE ALREADY BEEN APPLIED AND IF NOT,
+// IT APPLIES THEM AND RECORDS THE TRANSACTION IN THE LEDGER
+export async function addAutoRefillCredits(
+  passId: string,
+  matchas: number,
+  paymentIntentId: string,
+): Promise<PurchaseFulfillmentResult> {
+  const outcome = await applyCreditFulfillment({
+    passId,
+    matchas,
+    refId: paymentIntentId,
+    refType: 'stripe_auto_refill',
+    reason: 'stripe-auto-refill',
+    eventType: 'payment_intent.succeeded',
+    refIdMetaKey: 'payment_intent_id',
+  })
+
+  if (!outcome.applied) return { credited: false, credits: outcome.creditsBefore }
+
+  // The `mega_customers` update is the last step of fulfillment, so it can
+  const preferences = outcome.mmaPreferences
+  const updatedPreferences: MmaPreferences | undefined = preferences
+    ? { autoRefill: { ...preferences.autoRefill, monthlyCount: preferences.autoRefill.monthlyCount + 1 } }
+    : undefined
+
+  const { error } = await supabase
+    .from('mega_customers')
+    .update({
+      mg_credits: outcome.creditsAfter,
+      mg_expires_at: outcome.nextExpiresAt,
+      mg_credit_lots: outcome.lots,
+      mg_updated_at: outcome.at,
+      ...(updatedPreferences ? { mg_mma_preferences: updatedPreferences } : {}),
+    })
+    .eq('mg_pass_id', passId)
+
+  if (error) throw new Error(error.message)
+
+  return { credited: true, credits: outcome.creditsAfter }
 }
 
 /**

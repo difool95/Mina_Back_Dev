@@ -17,14 +17,12 @@ export async function postCheckoutSession(req: Request, res: Response) {
 
 export async function postCheckoutWebhook(req: Request, res: Response) {
   const signature = req.get('stripe-signature')
-  console.log('signature', signature);
   if (!signature) {
     res.status(400).json({ error: 'Missing stripe-signature header' })
     return
   }
 
-  // `req.body` is the raw `Buffer` express.raw() left it as — Stripe verifies
-  // the signature against those exact bytes.
+// The webhook is the only route that needs the raw body, so it can verify the signature. The rest of the app uses express.json().
   await fulfillWebhookEvent(req.body, signature)
   res.json({ received: true })
 }

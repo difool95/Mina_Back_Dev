@@ -25,3 +25,9 @@ export const MATCHA_PACKS = [
   { matchas: 1500, gbp: 900 },
   { matchas: 5000, gbp: 2500 },
 ] as const
+
+/** How often the auto-refill cron looks for customers to charge. */
+export const AUTO_REFILL_INTERVAL_MS = 10 * 60 * 1000
+
+/** Customers fetched per page while scanning for auto-refill candidates. */
+export const AUTO_REFILL_PAGE_SIZE = 200
