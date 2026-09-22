@@ -2,21 +2,43 @@ import type Stripe from 'stripe'
 
 import { env } from '../config/env.js'
 import { MATCHA_PACKS } from '../lib/constants.js'
-import type { CreateCheckoutSessionResult } from '../types/checkout.types.js'
+import type { CreateCheckoutSessionResult, Currency } from '../types/checkout.types.js'
 import { addPurchasedCredits } from './credits.service.js'
 import { stripe } from './stripe.client.js'
+
+// The same no-key, CORS-open rate source the frontend prices its display
+// with — fetched again here rather than trusted from the client, since it
+// feeds directly into what Stripe charges the card.
+const RATES_URL = 'https://open.er-api.com/v6/latest/GBP'
+
+async function rateFromGbp(currency: Currency): Promise<number> {
+  if (currency === 'GBP') return 1
+
+  const response = await fetch(RATES_URL)
+  if (!response.ok) throw new Error(`Could not read exchange rates (${response.status})`)
+
+  const { rates } = (await response.json()) as { rates?: Partial<Record<Currency, number>> }
+  const rate = rates?.[currency]
+  if (!rate) throw new Error(`No exchange rate for ${currency}`)
+
+  return rate
+}
 
 /**
  * Starts a Stripe-hosted checkout for one matcha pack. The price is looked up
  * server-side from `MATCHA_PACKS` — never trust a client-supplied amount for
- * something that charges a card.
+ * something that charges a card — and converted to the client's own currency
+ * from a rate this fetches itself, for the same reason.
  */
 export async function createCheckoutSession(
   userId: string,
   matchas: number,
+  currency: Currency,
 ): Promise<CreateCheckoutSessionResult> {
   const pack = MATCHA_PACKS.find((candidate) => candidate.matchas === matchas)
   if (!pack) throw new Error(`Unknown matcha pack: ${matchas}`)
+
+  const rate = await rateFromGbp(currency)
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -24,8 +46,9 @@ export async function createCheckoutSession(
       {
         quantity: 1,
         price_data: {
-          currency: 'gbp',
-          unit_amount: pack.gbp * 100,
+          // Stripe wants its three-letter code lowercase.
+          currency: currency.toLowerCase(),
+          unit_amount: Math.round(pack.gbp * rate * 100),
           product_data: { name: `${matchas} Matcha` },
         },
       },

@@ -3,13 +3,16 @@ import { z } from 'zod'
 
 import { createCheckoutSession, fulfillWebhookEvent } from '../services/stripe.service.js'
 
-const sessionBody = z.object({ matchas: z.number().int().positive() })
+const sessionBody = z.object({
+  matchas: z.number().int().positive(),
+  currency: z.enum(['GBP', 'EUR', 'AED', 'USD']),
+})
 
 export async function postCheckoutSession(req: Request, res: Response) {
-  const { matchas } = sessionBody.parse(req.body)
+  const { matchas, currency } = sessionBody.parse(req.body)
 
   // requireUser has already resolved this from the verified bearer token.
-  res.json(await createCheckoutSession(req.userId!, matchas))
+  res.json(await createCheckoutSession(req.userId!, matchas, currency))
 }
 
 export async function postCheckoutWebhook(req: Request, res: Response) {
