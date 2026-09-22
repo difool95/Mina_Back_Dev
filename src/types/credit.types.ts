@@ -27,3 +27,9 @@ export interface ExpirySweepResult {
   swept: number
   creditsRemoved: number
 }
+
+export interface PurchaseFulfillmentResult {
+  /** False when this Stripe checkout session was already fulfilled. */
+  credited: boolean
+  credits: number
+}

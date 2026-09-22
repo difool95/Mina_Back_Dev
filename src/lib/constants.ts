@@ -14,3 +14,14 @@ export const TIME_ZONE = 'Asia/Dubai'
 export const CREDIT_EXPIRY_HOUR = 8
 
 export const DAY_SECONDS = 86_400
+
+/**
+ * The matcha packs a customer can buy, priced in GBP. Kept in step with
+ * `Mina_Front_Dev/src/lib/constants.ts`
+ */
+export const MATCHA_PACKS = [
+  { matchas: 100, gbp: 60 },
+  { matchas: 500, gbp: 300 },
+  { matchas: 1500, gbp: 900 },
+  { matchas: 5000, gbp: 2500 },
+] as const
