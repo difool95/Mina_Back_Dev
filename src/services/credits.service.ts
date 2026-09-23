@@ -124,13 +124,13 @@ export async function grantSignupBonus(userId: string): Promise<SignupBonusResul
 interface CreditFulfillmentParams {
   passId: string
   matchas: number
-  /** The Stripe id this fulfillment is keyed on — a checkout session id or a payment intent id. */
+  /** The Stripe id this fulfillment is keyed on — a checkout session id or an invoice id. */
   refId: string
   refType: string
   reason: string
   /** The Stripe event type that triggered this, recorded in the webhook_event row's meta. */
   eventType: string
-  /** What the webhook_event row's `mg_meta` calls `refId` — a purchase's is a session, an auto-refill's a payment intent. */
+  /** What the webhook_event row's `mg_meta` calls `refId` — a purchase's is a session, an auto-refill's an invoice. */
   refIdMetaKey: string
 }
 
@@ -289,16 +289,16 @@ export async function addPurchasedCredits(
 export async function addAutoRefillCredits(
   passId: string,
   matchas: number,
-  paymentIntentId: string,
+  invoiceId: string,
 ): Promise<PurchaseFulfillmentResult> {
   const outcome = await applyCreditFulfillment({
     passId,
     matchas,
-    refId: paymentIntentId,
+    refId: invoiceId,
     refType: 'stripe_auto_refill',
     reason: 'stripe-auto-refill',
-    eventType: 'payment_intent.succeeded',
-    refIdMetaKey: 'payment_intent_id',
+    eventType: 'invoice.paid',
+    refIdMetaKey: 'invoice_id',
   })
 
   if (!outcome.applied) return { credited: false, credits: outcome.creditsBefore }

@@ -24,7 +24,8 @@ export async function rateFromGbp(currency: Currency): Promise<number> {
   return rate
 }
 
-//THIS METHOD CREATES A CHECKOUT SESSION FOR THE GIVEN USER ID, MATCHAS AND CURRENCY, IT RETURNS THE URL OF THE CHECKOUT SESSION
+//THIS METHOD CREATES A CHECKOUT SESSION FOR THE GIVEN USER, MATCHAS AND CURRENCY, IT RETURNS THE CHECKOUT URL AND CREATE AN INVOICE FOR THE PURCHASED CREDITS,
+//IT ALSO SAVES THE STRIPE CUSTOMER ID AND PAYMENT METHOD ID TO THE CUSTOMER FOR FUTURE AUTO REFILL PAYMENTS
 export async function createCheckoutSession(
   userId: string,
   matchas: number,
@@ -42,6 +43,7 @@ export async function createCheckoutSession(
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_creation: 'always' }),
     payment_method_types: ['card'],
     payment_intent_data: { setup_future_usage: 'off_session' },
+    invoice_creation: { enabled: true },
     line_items: [
       {
         quantity: 1,
@@ -66,10 +68,8 @@ export async function createCheckoutSession(
 }
 
 
-/// Charges a customer off-session for one auto-refill cycle. The amount is
-/// looked up server-side from `MATCHA_PACKS` — never trust a client-supplied
-/// amount for something that charges a card — and converted to the customer's
-/// own currency from a rate this fetches itself, for the same reason.
+// THIS METHOD CHARGES THE CUSTOMER FOR THE AUTO REFILL PAYMENT, IT CREATES AN INVOICE AND INVOICE ITEM FOR THE AUTO REFILL
+//  PAYMENT AND PAYS THE INVOICE OFF_SESSION
 export async function chargeAutoRefill(params: {
   passId: string
   customerId: string
@@ -78,34 +78,57 @@ export async function chargeAutoRefill(params: {
   amountMinor: number
   currency: string
 }): Promise<void> {
-  await stripe.paymentIntents.create({
-    amount: params.amountMinor,
-    currency: params.currency,
+  console.log("Charging auto-refill for", params.passId, ":", params.amountMinor, params.currency, "for", params.matchas, "matchas")
+  // Charged through an invoice rather than a bare PaymentIntent so the refill
+  // shows up in the customer's billing portal. Paying a draft finalizes it.
+  const invoice = await stripe.invoices.create({
     customer: params.customerId,
-    payment_method: params.paymentMethodId,
-    off_session: true,
-    confirm: true,
+    currency: params.currency,
+    auto_advance: false,
     metadata: { type: 'auto_refill', passId: params.passId, matchas: String(params.matchas) },
   })
+
+  await stripe.invoiceItems.create({
+    customer: params.customerId,
+    invoice: invoice.id,
+    amount: params.amountMinor,
+    currency: params.currency,
+    description: `${params.matchas} Matcha`,
+  })
+
+  await stripe.invoices.pay(invoice.id, { payment_method: params.paymentMethodId, off_session: true })
 }
 
-// THIS METHOD IS THE ENTRY POINT FOR THE STRIPE WEBHOOK, IT HANDLES THE CHECKOUT SESSION COMPLETED AND PAYMENT INTENT SUCCEEDED EVENTS
+/** A link to Stripe's billing portal, where the signed-in user sees their invoices. */
+export async function createBillingPortalSession(userId: string): Promise<CreateCheckoutSessionResult> {
+  const customerId = await getStripeCustomerId(`pass:user:${userId}`)
+  if (!customerId) throw new Error('This account has no Stripe customer yet')
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${env.CORS_ORIGIN}/profile`,
+  })
+
+  return { url: session.url }
+}
+
+// THIS METHOD IS THE ENTRY POINT FOR THE STRIPE WEBHOOK, IT HANDLES THE CHECKOUT SESSION COMPLETED AND INVOICE PAID EVENTS
 export async function fulfillWebhookEvent(rawBody: Buffer, signature: string): Promise<void> {
   const event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET)
 
   //THIS EVENT TYPE IS FIRED WHEN A CHECKOUT SESSION IS COMPLETED, IT ADDS THE PURCHASED CREDITS TO THE CUSTOMER AND SAVES THE CARD FOR FUTURE AUTO REFILL PAYMENTS
-  //THIS IS ONLY CALLED WHEN FOR ONLY PURCHASED CREDITS, THE PAYMENT INTENT SUCCEEDED EVENT HANDLES THE AUTO REFILL PAYMENTS
+  //THIS IS ONLY CALLED WHEN FOR ONLY PURCHASED CREDITS, THE INVOICE PAID EVENT HANDLES THE AUTO REFILL PAYMENTS
   if (event.type === 'checkout.session.completed') {
     await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session)
     return
   }
 
-  // THIS EVENT TYPE IS FIRED WHEN A PAYMENT INTENT IS SUCCEEDED, IT HANDLES THE AUTO REFILL PAYMENTS AND ADDS THE AUTO REFILL CREDITS TO THE CUSTOMER
-  //THIS IS ONLY CALLED WHEN FOR ONLY AUTO REFILL PAYMENTS, THE CHECKOUT SESSION COMPLETED EVENT HANDLES THE PURCHASED CREDITS
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent
-    if (paymentIntent.metadata?.type === 'auto_refill') {
-      await handleAutoRefillPaymentSucceeded(paymentIntent)
+  // THIS EVENT TYPE IS FIRED WHEN AN INVOICE IS PAID, IT HANDLES THE AUTO REFILL PAYMENTS AND ADDS THE AUTO REFILL CREDITS TO THE CUSTOMER
+  // Checkout's own invoices fire this too; only auto-refill invoices carry the metadata.
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice
+    if (invoice.metadata?.type === 'auto_refill') {
+      await handleAutoRefillInvoicePaid(invoice)
     }
   }
 }
@@ -144,14 +167,14 @@ async function resolvePaymentMethodId(session: Stripe.Checkout.Session): Promise
 }
 
 
-//THIS METHOD HANDLES THE PAYMENT INTENT SUCCEEDED EVENT FOR AUTO REFILL PAYMENTS, IT ADDS THE AUTO REFILL CREDITS TO THE CUSTOMER
-async function handleAutoRefillPaymentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-  const passId = paymentIntent.metadata?.passId
-  const matchas = Number(paymentIntent.metadata?.matchas)
+//THIS METHOD HANDLES THE INVOICE PAID EVENT FOR AUTO REFILL PAYMENTS, IT ADDS THE AUTO REFILL CREDITS TO THE CUSTOMER
+async function handleAutoRefillInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+  const passId = invoice.metadata?.passId
+  const matchas = Number(invoice.metadata?.matchas)
 
   if (!passId || !matchas) {
-    throw new Error(`Auto-refill PaymentIntent ${paymentIntent.id} is missing passId/matchas metadata`)
+    throw new Error(`Auto-refill invoice ${invoice.id} is missing passId/matchas metadata`)
   }
 
-  await addAutoRefillCredits(passId, matchas, paymentIntent.id)
+  await addAutoRefillCredits(passId, matchas, invoice.id)
 }

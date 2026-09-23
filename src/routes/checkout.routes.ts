@@ -1,6 +1,6 @@
 import express, { Router } from 'express'
 
-import { postCheckoutSession, postCheckoutWebhook } from '../controllers/checkout.controller.js'
+import { postBillingPortal, postCheckoutSession, postCheckoutWebhook } from '../controllers/checkout.controller.js'
 import { requireUser } from '../middlewares/auth.middleware.js'
 
 export const checkoutRouter = Router()
@@ -10,3 +10,4 @@ export const checkoutRouter = Router()
 // router is mounted ahead of that global parser in app.ts.
 checkoutRouter.post('/webhook', express.raw({ type: 'application/json' }), postCheckoutWebhook)
 checkoutRouter.post('/session', express.json(), requireUser, postCheckoutSession)
+checkoutRouter.post('/portal', requireUser, postBillingPortal)

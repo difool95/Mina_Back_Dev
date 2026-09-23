@@ -1,7 +1,11 @@
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 
-import { createCheckoutSession, fulfillWebhookEvent } from '../services/stripe.service.js'
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+  fulfillWebhookEvent,
+} from '../services/stripe.service.js'
 
 const sessionBody = z.object({
   matchas: z.number().int().positive(),
@@ -13,6 +17,10 @@ export async function postCheckoutSession(req: Request, res: Response) {
 
   // requireUser has already resolved this from the verified bearer token.
   res.json(await createCheckoutSession(req.userId!, matchas, currency))
+}
+
+export async function postBillingPortal(req: Request, res: Response) {
+  res.json(await createBillingPortalSession(req.userId!))
 }
 
 export async function postCheckoutWebhook(req: Request, res: Response) {
