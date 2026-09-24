@@ -11,5 +11,8 @@ export const env = z
     CORS_ORIGIN: z.string().url(),
     STRIPE_SECRET_KEY: z.string().min(1),
     STRIPE_WEBHOOK_SECRET: z.string().min(1),
+    SHOPIFY_STORE_DOMAIN: z.string().min(1),
+    SHOPIFY_ADMIN_TOKEN: z.string().min(1),
+    SHOPIFY_API_VERSION: z.string().min(1),
   })
   .parse(process.env)

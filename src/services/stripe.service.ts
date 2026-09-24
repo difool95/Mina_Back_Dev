@@ -5,6 +5,7 @@ import { MATCHA_PACKS } from '../lib/constants.js'
 import type { CreateCheckoutSessionResult, Currency } from '../types/checkout.types.js'
 import { addAutoRefillCredits, addPurchasedCredits } from './credits.service.js'
 import { getStripeCustomerId, saveStripeCard } from './customers.service.js'
+import { recordShopifyOrder } from './shopify.service.js'
 import { stripe } from './stripe.client.js'
 
 
@@ -143,7 +144,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
     throw new Error(`Checkout session ${session.id} is missing pass/matchas metadata`)
   }
 
-  await addPurchasedCredits(passId, matchas, session.id)
+  const { credited } = await addPurchasedCredits(passId, matchas, session.id)
 
 //THIS METHOD SAVES THE CARD USED IN THE CHECKOUT SESSION FOR FUTURE AUTO REFILL PAYMENTS, IT RESOLVES THE PAYMENT METHOD ID 
 // FROM THE CHECKOUT SESSION AND SAVES IT TO THE CUSTOMER
@@ -152,6 +153,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session):
 
   //WE SAVE THE STRIPE CUSTOMER ID AND PAYMENT METHOD ID TO THE CUSTOMER, SO THAT WE CAN USE IT FOR FUTURE AUTO REFILL PAYMENTS
   if (customerId && paymentMethodId) await saveStripeCard(passId, customerId, paymentMethodId)
+
+  // Only on the first delivery, so a retried webhook cannot duplicate the order.
+  if (credited) {
+    await recordShopifyOrder({
+      passId,
+      matchas,
+      amountMinor: session.amount_total ?? 0,
+      currency: session.currency ?? '',
+      refId: session.id,
+      refType: 'stripe_checkout',
+      livemode: session.livemode,
+    })
+  }
 }
 
 //THIS METHOD RESOLVES THE PAYMENT METHOD ID FROM THE CHECKOUT SESSION, IT RETURNS NULL IF THE PAYMENT METHOD ID CANNOT BE RESOLVED
@@ -176,5 +190,17 @@ async function handleAutoRefillInvoicePaid(invoice: Stripe.Invoice): Promise<voi
     throw new Error(`Auto-refill invoice ${invoice.id} is missing passId/matchas metadata`)
   }
 
-  await addAutoRefillCredits(passId, matchas, invoice.id)
+  const { credited } = await addAutoRefillCredits(passId, matchas, invoice.id)
+
+  if (credited) {
+    await recordShopifyOrder({
+      passId,
+      matchas,
+      amountMinor: invoice.amount_paid,
+      currency: invoice.currency,
+      refId: invoice.id,
+      refType: 'stripe_auto_refill',
+      livemode: invoice.livemode,
+    })
+  }
 }
