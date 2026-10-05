@@ -8,7 +8,6 @@ import {
   CREATE_ASSET_DIRECTOR_PROMPT,
   CREATE_ASSET_PLAN_TOOL,
   CREATE_ASSET_PROMPT_CACHE,
-  NO_ASSETS_OUTPUT,
   PILLS,
   SCENE_LIBRARY_NAME,
   briefMessage,
@@ -69,9 +68,10 @@ async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
 
 /**
  * MMA step 1, Create Asset Intelligence: stores the uploads on R2, then asks
- * the Create Asset Director what each picture is for in this generation. A
- * brief with no picture needs no reading, so Claude is only asked when there
- * is at least one.
+ * the Create Asset Director what each picture is for in this generation.
+ * Claude is asked even when there is no picture: the brief alone tells it the
+ * production profile (register, capture device, subjects, safety scope) that
+ * step 2 picks its knowledge files by.
  *
  * Fills the `mg_payload` that `startStillGeneration` left empty on the step's
  * row. Nobody waits on this, so a failure is written to the payload's `error`
@@ -100,69 +100,65 @@ export async function runCreateAssetIntelligence(
     const inventory = await Promise.all(uploads.map((upload, i) => toInventoryItem(passId, upload, i + 1)))
     payload.input.inventory = inventory
 
-    if (!inventory.length) {
-      payload.output = NO_ASSETS_OUTPUT
-    } else {
-      const images = await Promise.all(inventory.map((item) => imageBlock(item.url)))
-      const request: Anthropic.MessageCreateParamsNonStreaming = {
-        model: CREATE_ASSET_DIRECTOR.model,
-        tools: [CREATE_ASSET_PLAN_TOOL],
-        // The cache breakpoint sits after the prompt, so tools and prompt are
-        // read from cache by every generation within its five minutes.
-        system: [{ type: 'text', text: CREATE_ASSET_DIRECTOR_PROMPT, cache_control: { type: 'ephemeral' } }],
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: briefMessage(brief, inventory) },
-              ...inventory.flatMap((item, i) => [{ type: 'text' as const, text: imageNote(item) }, images[i]!]),
-            ],
-          },
-        ],
-        thinking: { type: 'adaptive' },
-        max_tokens: CREATE_ASSET_DIRECTOR.maxTokens,
-        //When the tool_choice is auto Claude will answer in tool_use format if it thinks the tool is needed, otherwise it will answer in text format.
-        //This is useful for when you want to use a tool but don't want to force the model to use it.
-        tool_choice: { type: 'auto' },
-        output_config: { effort: CREATE_ASSET_DIRECTOR.effort },
-      }
-
-      payload.request = { ...request, agent_key: CREATE_ASSET_DIRECTOR.key, configured_model: request.model }
-
-      //THS IS THE CALL TO CLAUDE. THE REQUEST IS SENT TO CLAUDE AND THE RESPONSE IS STORED IN THE PAYLOAD OBJECT. 
-      //THE PAYLOAD OBJECT WILL BE STORED IN THE MG_PAYLOAD COLUMN OF THE MEGA_GENERATIONS TABLE.
-      const message = await anthropic.messages.create(request)
-      const { usage } = message
-      const cacheRead = usage.cache_read_input_tokens ?? 0
-      const cacheCreation = usage.cache_creation_input_tokens ?? 0
-
-      payload.request = {
-        ...payload.request,
-        prompt_cache: {
-          ...CREATE_ASSET_PROMPT_CACHE,
-          status: cacheRead ? 'read' : 'write',
-          cache_read_input_tokens: cacheRead,
-          cache_creation_input_tokens: cacheCreation,
+    const images = await Promise.all(inventory.map((item) => imageBlock(item.url)))
+    const request: Anthropic.MessageCreateParamsNonStreaming = {
+      model: CREATE_ASSET_DIRECTOR.model,
+      tools: [CREATE_ASSET_PLAN_TOOL],
+      // The cache breakpoint sits after the prompt, so tools and prompt are
+      // read from cache by every generation within its five minutes.
+      system: [{ type: 'text', text: CREATE_ASSET_DIRECTOR_PROMPT, cache_control: { type: 'ephemeral' } }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: briefMessage(brief, inventory) },
+            ...inventory.flatMap((item, i) => [{ type: 'text' as const, text: imageNote(item) }, images[i]!]),
+          ],
         },
-        executed_model: message.model,
-        routing_status: message.model === request.model ? 'matched' : 'mismatched',
-      }
-      payload.usage = {
-        model: message.model,
-        stop_reason: message.stop_reason,
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
+      ],
+      thinking: { type: 'adaptive' },
+      max_tokens: CREATE_ASSET_DIRECTOR.maxTokens,
+      //When the tool_choice is auto Claude will answer in tool_use format if it thinks the tool is needed, otherwise it will answer in text format.
+      //This is useful for when you want to use a tool but don't want to force the model to use it.
+      tool_choice: { type: 'auto' },
+      output_config: { effort: CREATE_ASSET_DIRECTOR.effort },
+    }
+
+    payload.request = { ...request, agent_key: CREATE_ASSET_DIRECTOR.key, configured_model: request.model }
+
+    //THS IS THE CALL TO CLAUDE. THE REQUEST IS SENT TO CLAUDE AND THE RESPONSE IS STORED IN THE PAYLOAD OBJECT. 
+    //THE PAYLOAD OBJECT WILL BE STORED IN THE MG_PAYLOAD COLUMN OF THE MEGA_GENERATIONS TABLE.
+    const message = await anthropic.messages.create(request)
+    const { usage } = message
+    const cacheRead = usage.cache_read_input_tokens ?? 0
+    const cacheCreation = usage.cache_creation_input_tokens ?? 0
+
+    payload.request = {
+      ...payload.request,
+      prompt_cache: {
+        ...CREATE_ASSET_PROMPT_CACHE,
+        status: cacheRead ? 'read' : 'write',
         cache_read_input_tokens: cacheRead,
         cache_creation_input_tokens: cacheCreation,
-      }
-      payload.provider = { name: 'anthropic', stop_reason: message.stop_reason }
-
-      const plan = message.content.find((block) => block.type === 'tool_use')?.input as CreateAssetPlan | undefined
-      if (!plan) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
-
-      payload.raw = JSON.stringify(plan)
-      payload.output = planOutput(plan, inventory, message.model)
+      },
+      executed_model: message.model,
+      routing_status: message.model === request.model ? 'matched' : 'mismatched',
     }
+    payload.usage = {
+      model: message.model,
+      stop_reason: message.stop_reason,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cache_read_input_tokens: cacheRead,
+      cache_creation_input_tokens: cacheCreation,
+    }
+    payload.provider = { name: 'anthropic', stop_reason: message.stop_reason }
+
+    const plan = message.content.find((block) => block.type === 'tool_use')?.input as CreateAssetPlan | undefined
+    if (!plan) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
+
+    payload.raw = JSON.stringify(plan)
+    payload.output = planOutput(plan, inventory, message.model)
   } catch (error) {
     payload.error = (error as Error).message
   }

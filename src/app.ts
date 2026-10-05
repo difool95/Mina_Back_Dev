@@ -19,6 +19,10 @@ export function createApp() {
   // which a global JSON parser would have already consumed.
   app.use('/api/checkout', checkoutRouter)
 
+  // Ahead of the global parser too, which would refuse a Create's uploads at
+  // its 100 KB default before this route's larger limit could apply.
+  app.use('/api/mma', express.json({ limit: MMA_BODY_LIMIT }), mmaRouter)
+
   app.use(express.json())
 
   app.get('/health', (_req, res) => {
@@ -26,10 +30,6 @@ export function createApp() {
   })
 
   app.use('/api/credits', creditsRouter)
-
-  // Ahead of the global parser too, which would refuse a Create's uploads at
-  // its 100 KB default before this route's larger limit could apply.
-  app.use('/api/mma', express.json({ limit: MMA_BODY_LIMIT }), mmaRouter)
 
   // Must stay last, after every route it is meant to catch.
   app.use(errorHandler)

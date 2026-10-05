@@ -11,7 +11,7 @@ import type {
   PillHint,
   UploadKind,
 } from '../../types/mma/mma.types.js'
-import { CREATE_ASSET_DIRECTOR, MMA_IMAGE_WIDTH } from '../constants.js'
+import { MMA_IMAGE_WIDTH } from '../constants.js'
 
 /** The version of the asset plan step 1 writes, which the steps after it read. */
 export const CREATE_ASSET_PLAN_SCHEMA = 'mina.create.asset-plan.v3'
@@ -474,42 +474,6 @@ export const CREATE_ASSET_PLAN_TOOL: Anthropic.Tool = {
 }
 
 /**
- * Step 1's plan when there is no picture to read: the brief alone makes the
- * image, so Claude is not asked anything.
- */
-export const NO_ASSETS_OUTPUT: CreateAssetOutput = {
-  items: [],
-  model: CREATE_ASSET_DIRECTOR.model,
-  schema: CREATE_ASSET_PLAN_SCHEMA,
-  source: 'no_assets',
-  summary: 'Create a new image from the prompt and supplied identities.',
-  strategy: 'prompt_composition',
-  color_intent: { global_scene_grade: false, explicit_asset_color: false },
-  person_recast: { active: false, reason: 'no_base_scene' },
-  preserve_scene: false,
-  used_memory_ids: [],
-  unused_memory_ids: [],
-  production_profile: {
-    format: 'unknown',
-    subjects: ['unknown'],
-    rationale: '',
-    confidence: 0,
-    safety_scope: {
-      real_person: 'unknown',
-      visible_face: 'unknown',
-      sensitive_context: 'unknown',
-      body_part_without_face: 'unknown',
-    },
-    capture_device: 'unknown',
-    visual_register: 'unknown',
-    physical_realism: 'unknown',
-    human_safety_scope: ['unknown'],
-  },
-  target_output_medium: 'unknown',
-  uncertain_memory_ids: [],
-}
-
-/**
  * The Cloudflare resize of an R2 picture, which Claude reads and the later
  * steps use. Scenes go as JPEG; logos and products as PNG, so a cutout keeps
  * its transparency.
@@ -628,7 +592,7 @@ export function planOutput(plan: CreateAssetPlan, inventory: InventoryItem[], mo
     items,
     model,
     schema: CREATE_ASSET_PLAN_SCHEMA,
-    source: 'vision_intent_classifier',
+    source: inventory.length ? 'vision_intent_classifier' : 'no_assets',
     summary: plan.summary,
     strategy: plan.strategy,
     color_intent: {
