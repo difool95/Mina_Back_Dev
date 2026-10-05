@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-import { env } from '../config/env.js'
+import { env } from '../../config/env.js'
 
 /**
  * Holds the service_role key, so it bypasses RLS entirely — never expose a
