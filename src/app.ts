@@ -5,6 +5,7 @@ import { env } from './config/env.js'
 import { errorHandler } from './middlewares/error.middleware.js'
 import { checkoutRouter } from './routes/checkout.routes.js'
 import { creditsRouter } from './routes/credits.routes.js'
+import { mmaRouter } from './routes/mma.routes.js'
 
 // Assembles the Express app. Kept separate from server.ts so tests can import
 // the app without opening a port.
@@ -24,6 +25,7 @@ export function createApp() {
   })
 
   app.use('/api/credits', creditsRouter)
+  app.use('/api/mma', mmaRouter)
 
   // Must stay last, after every route it is meant to catch.
   app.use(errorHandler)

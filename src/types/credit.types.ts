@@ -12,7 +12,8 @@ export interface CreditLot {
 
 /** The `mg_meta` payload every `credit_transaction` row carries. */
 export interface CreditTransactionMeta {
-  expires_at: string
+  /** When the credited matchas lapse; `null` on a charge, which credits nothing. */
+  expires_at: string | null
   credits_after: number
   credits_before: number
 }

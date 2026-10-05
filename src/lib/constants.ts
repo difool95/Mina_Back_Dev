@@ -1,3 +1,6 @@
+/** What one Create (still image) generation costs, in matchas. */
+export const STILL_GENERATION_COST = 1
+
 /** Matchas handed to a user the first time they sign in. */
 export const SIGNUP_BONUS = 3
 
