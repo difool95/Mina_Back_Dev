@@ -5,7 +5,7 @@ import type { Currency } from '../types/checkout.types.js'
 import type { MmaPreferences } from '../types/customer.types.js'
 import { updateMmaPreferences } from './customers.service.js'
 import { chargeAutoRefill, rateFromGbp } from './stripe.service.js'
-import { supabase } from './supabase.client.js'
+import { supabase } from './thirdPartyClients/supabase.client.js'
 
 interface CustomerResult {
   outcome: 'skipped' | 'charged' | 'failed'

@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 
-import { STILL_GENERATION_COST } from '../lib/constants.js'
-import type { StillGenerationRequest, StillGenerationResult } from '../types/mma.types.js'
-import { recordTransaction } from './credits.service.js'
-import { supabase } from './supabase.client.js'
+import { STILL_GENERATION_COST } from '../../lib/constants.js'
+import type { StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
+import { recordTransaction } from '../../services/credits.service.js'
+import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
+import { supabase } from '../../services/thirdPartyClients/supabase.client.js'
 
 /**
  * Starts a Create (still image) generation: the rows that frame it, then the
@@ -15,6 +16,8 @@ import { supabase } from './supabase.client.js'
  * - an "Image session" row, new for every generation;
  * - the `generation` row and its MMA step 1, both skeletons the pipeline fills in;
  * - the `credit_transaction` charging for it, with the balance on `mega_customers`.
+ *
+ * Then starts MMA step 1, which fills its row in on its own.
  */
 export async function startStillGeneration(
   userId: string,
@@ -130,6 +133,10 @@ export async function startStillGeneration(
     .eq('mg_pass_id', passId)
 
   if (updateError) throw new Error(updateError.message)
+
+  // Not awaited: step 1 uploads the pictures and asks Claude about them, which
+  // takes seconds. The client gets its new balance now.
+  runCreateAssetIntelligence(generationId, passId, request.brief, request.uploads).catch(console.error)
 
   return { generationId, credits: creditsAfter }
 }

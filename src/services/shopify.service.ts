@@ -1,6 +1,6 @@
 import { env } from '../config/env.js'
 import type { ShopifyOrder } from '../types/shopify.types.js'
-import { supabase } from './supabase.client.js'
+import { supabase } from './thirdPartyClients/supabase.client.js'
 
 
 //THIS IS A GRAPHQL MUTATION THAT CREATES AN ORDER AND A CUSTOMER RECORD IN SHOPIFY.

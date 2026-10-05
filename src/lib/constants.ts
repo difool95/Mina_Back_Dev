@@ -1,6 +1,27 @@
 /** What one Create (still image) generation costs, in matchas. */
 export const STILL_GENERATION_COST = 1
 
+/**
+ * The largest request body `/api/mma` accepts. A Create carries the pictures
+ * fresh from the file picker as data URLs, far past express's 100 KB default.
+ */
+export const MMA_BODY_LIMIT = '50mb'
+
+//THIS IS THE AGENT OF THE CREATE ASSET DIRECTOR, WHICH IS THE AGENT THAT WILL BE USED TO GENERATE MMA STEP 1 OF CREATE MODE. 
+// IT IS A LOW EFFORT AGENT THAT USES THE CLAUDE-SONNET-5 MODEL.
+export const CREATE_ASSET_DIRECTOR = {
+  key: 'create_asset_director',
+  model: 'claude-sonnet-5',
+  maxTokens: 3000,
+  effort: 'low',
+} as const
+
+/** The width Cloudflare resizes every picture to before Claude reads it. */
+export const MMA_IMAGE_WIDTH = 1080
+
+/** The R2 folder customers' uploads go in, one `owner_` folder each. */
+export const R2_UPLOADS_PREFIX = 'mina-assets'
+
 /** Matchas handed to a user the first time they sign in. */
 export const SIGNUP_BONUS = 3
 

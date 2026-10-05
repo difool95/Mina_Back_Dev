@@ -10,7 +10,7 @@ import type {
   PurchaseFulfillmentResult,
   SignupBonusResult,
 } from '../types/credit.types.js'
-import { supabase } from './supabase.client.js'
+import { supabase } from './thirdPartyClients/supabase.client.js'
 
 interface LedgerEntry {
   passId: string

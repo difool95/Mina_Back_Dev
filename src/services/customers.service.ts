@@ -1,5 +1,5 @@
 import type { MmaPreferences } from '../types/customer.types.js'
-import { supabase } from './supabase.client.js'
+import { supabase } from './thirdPartyClients/supabase.client.js'
 
 //GET THE STRIPE CUSTOMER ID OF THE CUSTOMER WITH THE GIVEN PASS ID, RETURNS NULL IF THE CUSTOMER DOES NOT HAVE A STRIPE CUSTOMER ID
 export async function getStripeCustomerId(passId: string): Promise<string | null> {
