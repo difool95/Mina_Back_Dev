@@ -2,7 +2,6 @@ import cors from 'cors'
 import express from 'express'
 
 import { env } from './config/env.js'
-import { MMA_BODY_LIMIT } from './lib/constants.js'
 import { errorHandler } from './middlewares/error.middleware.js'
 import { checkoutRouter } from './routes/checkout.routes.js'
 import { creditsRouter } from './routes/credits.routes.js'
@@ -19,10 +18,6 @@ export function createApp() {
   // which a global JSON parser would have already consumed.
   app.use('/api/checkout', checkoutRouter)
 
-  // Ahead of the global parser too, which would refuse a Create's uploads at
-  // its 100 KB default before this route's larger limit could apply.
-  app.use('/api/mma', express.json({ limit: MMA_BODY_LIMIT }), mmaRouter)
-
   app.use(express.json())
 
   app.get('/health', (_req, res) => {
@@ -30,6 +25,7 @@ export function createApp() {
   })
 
   app.use('/api/credits', creditsRouter)
+  app.use('/api/mma', mmaRouter)
 
   // Must stay last, after every route it is meant to catch.
   app.use(errorHandler)

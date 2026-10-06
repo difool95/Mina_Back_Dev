@@ -5,28 +5,28 @@ import { env } from '../config/env.js'
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex')
 const hmac = (key: string | Buffer, data: string) => createHmac('sha256', key).update(data).digest()
 
-/**
- * Stores a file in the R2 bucket and returns its public URL.
- *
- * R2 speaks the S3 API, which wants every request signed with AWS Signature
- * V4. That is the dozen lines below rather than the whole AWS SDK, for the
- * one call this API makes.
- */
-export async function putObject(key: string, body: Buffer, contentType: string) {
+//This method is for making requests to the R2 storage service. It takes the HTTP method (PUT or DELETE), the key of the object to be stored or deleted,
+// and an optional file object containing the body and content type of the file to be stored, and signs the request with the appropriate AWS signature.
+async function r2Request(method: 'PUT' | 'DELETE', key: string, file?: { body: Buffer; contentType: string }) {
   const host = `${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
   const path = `/${env.R2_BUCKET}/${key}`
   const amzDate = new Date().toISOString().replace(/[-:]|\.\d{3}/g, '')
   const scope = `${amzDate.slice(0, 8)}/auto/s3/aws4_request`
-  const payloadHash = sha256(body)
+  const payloadHash = sha256(file?.body ?? '')
 
   // Sorted by name, as the signature requires. fetch sends Host itself.
-  const signed = { 'content-type': contentType, host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate }
-  const signedHeaders = Object.keys(signed).join(';')
+  const sent = {
+    ...(file && { 'content-type': file.contentType }),
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': amzDate,
+  }
+  const signed = Object.entries({ ...sent, host }).sort(([a], [b]) => a.localeCompare(b))
+  const signedHeaders = signed.map(([name]) => name).join(';')
   const canonicalRequest = [
-    'PUT',
+    method,
     path,
     '',
-    ...Object.entries(signed).map(([name, value]) => `${name}:${value}`),
+    ...signed.map(([name, value]) => `${name}:${value}`),
     '',
     signedHeaders,
     payloadHash,
@@ -40,17 +40,24 @@ export async function putObject(key: string, body: Buffer, contentType: string) 
     .digest('hex')
 
   const response = await fetch(`https://${host}${path}`, {
-    method: 'PUT',
+    method,
     headers: {
-      'content-type': contentType,
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': amzDate,
+      ...sent,
       authorization: `AWS4-HMAC-SHA256 Credential=${env.R2_ACCESS_KEY_ID}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
     },
-    body,
+    ...(file && { body: file.body }),
   })
 
-  if (!response.ok) throw new Error(`R2 upload failed (${response.status}): ${await response.text()}`)
+  if (!response.ok) throw new Error(`R2 ${method} failed (${response.status}): ${await response.text()}`)
+}
+
+/** Stores a file in the R2 bucket and returns its public URL. */
+export async function putObject(key: string, body: Buffer, contentType: string) {
+  await r2Request('PUT', key, { body, contentType })
 
   return `${env.R2_PUBLIC_BASE_URL}/${key}`
+}
+
+export function deleteObject(key: string) {
+  return r2Request('DELETE', key)
 }

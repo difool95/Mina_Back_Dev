@@ -134,9 +134,9 @@ export async function startStillGeneration(
 
   if (updateError) throw new Error(updateError.message)
 
-  // Not awaited: step 1 uploads the pictures and asks Claude about them, which
-  // takes seconds. The client gets its new balance now.
-  runCreateAssetIntelligence(generationId, passId, request.brief, request.uploads).catch(console.error)
+//This line is for starting the Create Asset Intelligence process asynchronously. It calls the runCreateAssetIntelligence function with the generationId,
+//brief, and uploads from the request. Any errors during this process are caught and logged to the console.
+  runCreateAssetIntelligence(generationId, request.brief, request.uploads).catch(console.error)
 
   return { generationId, credits: creditsAfter }
 }

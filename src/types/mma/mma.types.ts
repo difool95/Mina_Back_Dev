@@ -5,12 +5,14 @@ export type MmaPlatform = 'tiktok' | 'instagram-post' | 'print' | 'square'
 export type UploadKind = 'scene' | 'logo' | 'product'
 
 /**
- * One picture from the studio, in the order it was added: a data URL fresh
- * from the file picker, or the R2 URL of a scene library pick. Same as the frontend's.
+ * One picture from the studio, in the order it was added, already on R2:
+ * uploaded when the user picked it, or a scene library pick. The frontend's
+ * type adds its upload progress on top.
  */
 export interface StudioUpload {
   kind: UploadKind
   url: string
+  origin: 'upload' | 'scene_library'
 }
 
 export interface StillGenerationRequest {

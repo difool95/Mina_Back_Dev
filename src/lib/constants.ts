@@ -1,11 +1,18 @@
 /** What one Create (still image) generation costs, in matchas. */
 export const STILL_GENERATION_COST = 1
 
+/** The largest picture the studio uploads, the same limit as its file picker. */
+export const UPLOAD_MAX_SIZE = '48mb'
+
 /**
- * The largest request body `/api/mma` accepts. A Create carries the pictures
- * fresh from the file picker as data URLs, far past express's 100 KB default.
+ * The picture types the studio uploads, and the extension each is stored
+ * under. The studio converts everything else (HEIC, AVIF, GIF…) before sending.
  */
-export const MMA_BODY_LIMIT = '50mb'
+export const UPLOAD_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
 
 //THIS IS THE AGENT OF THE CREATE ASSET DIRECTOR, WHICH IS THE AGENT THAT WILL BE USED TO GENERATE MMA STEP 1 OF CREATE MODE. 
 // IT IS A LOW EFFORT AGENT THAT USES THE CLAUDE-SONNET-5 MODEL.

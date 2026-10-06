@@ -1,9 +1,7 @@
-import { createHash } from 'node:crypto'
-
 import type Anthropic from '@anthropic-ai/sdk'
 
 import { env } from '../../../config/env.js'
-import { CREATE_ASSET_DIRECTOR, R2_UPLOADS_PREFIX } from '../../../lib/constants.js'
+import { CREATE_ASSET_DIRECTOR } from '../../../lib/constants.js'
 import {
   CREATE_ASSET_DIRECTOR_PROMPT,
   CREATE_ASSET_PLAN_TOOL,
@@ -17,36 +15,16 @@ import {
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { CreateAssetPayload, CreateAssetPlan, InventoryItem, StudioUpload } from '../../../types/mma/mma.types.js'
 import { anthropic } from '../../thirdPartyClients/anthropic.client.js'
-import { putObject } from '../../r2.service.js'
 import { supabase } from '../../thirdPartyClients/supabase.client.js'
 
-/**
- * Puts a picture fresh from the file picker on R2, in the customer's own
- * folder. Named after its own hash, so the same picture sent again lands on
- * the same key instead of piling up copies.
- */
-async function storeUpload(passId: string, dataUrl: string) {
-  const contentType = dataUrl.slice('data:'.length, dataUrl.indexOf(';'))
-  const body = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64')
-  const owner = createHash('md5').update(passId).digest('hex')
-  const name = createHash('sha256').update(body).digest('hex')
-
-  return putObject(`${R2_UPLOADS_PREFIX}/owner_${owner}/${name}.${contentType.split('/')[1]}`, body, contentType)
-}
-
-/** A studio upload as step 1's inventory holds it: on R2, at the size Claude reads it. */
-async function toInventoryItem(passId: string, upload: StudioUpload, index: number): Promise<InventoryItem> {
-  // The controller lets nothing through but a data URL or one of our R2 URLs,
-  // and only the scene pill has a library: whatever is not a data URL is a
-  // scene library pick, already on R2.
-  const isUpload = upload.url.startsWith('data:')
-  const url = isUpload ? await storeUpload(passId, upload.url) : upload.url
-
+//this method is for converting a StudioUpload object into an InventoryItem object. It takes a StudioUpload object and an index as parameters and returns
+//an InventoryItem object with the appropriate properties set.
+function toInventoryItem(upload: StudioUpload, index: number): InventoryItem {
   return {
-    url: cdnImage(env.R2_PUBLIC_BASE_URL, url, upload.kind),
-    name: isUpload ? PILLS[upload.kind].uploadName : SCENE_LIBRARY_NAME,
+    url: cdnImage(env.R2_PUBLIC_BASE_URL, upload.url, upload.kind),
+    name: upload.origin === 'upload' ? PILLS[upload.kind].uploadName : SCENE_LIBRARY_NAME,
     index,
-    origin: isUpload ? 'upload' : 'scene_library',
+    origin: upload.origin,
     memory_id: null,
     pill_hint: PILLS[upload.kind].hint,
   }
@@ -67,8 +45,9 @@ async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
 }
 
 /**
- * MMA step 1, Create Asset Intelligence: stores the uploads on R2, then asks
- * the Create Asset Director what each picture is for in this generation.
+ * MMA step 1, Create Asset Intelligence: asks the Create Asset Director what
+ * each picture is for in this generation. The studio has already put every
+ * picture on R2, when the user picked it.
  * Claude is asked even when there is no picture: the brief alone tells it the
  * production profile (register, capture device, subjects, safety scope) that
  * step 2 picks its knowledge files by.
@@ -79,7 +58,6 @@ async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
  */
 export async function runCreateAssetIntelligence(
   generationId: string,
-  passId: string,
   brief: string,
   uploads: StudioUpload[],
 ) {
@@ -97,7 +75,8 @@ export async function runCreateAssetIntelligence(
   }
 
   try {
-    const inventory = await Promise.all(uploads.map((upload, i) => toInventoryItem(passId, upload, i + 1)))
+    //this line is for creating the inventory of the uploads. It maps over the uploads and creates an inventory item for each upload using the toInventoryItem function.
+    const inventory = uploads.map((upload, i) => toInventoryItem(upload, i + 1))
     payload.input.inventory = inventory
 
     const images = await Promise.all(inventory.map((item) => imageBlock(item.url)))
