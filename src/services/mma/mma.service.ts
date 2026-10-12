@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COST } from '../../lib/constants.js'
 import type { StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
-import { recordTransaction } from '../../services/credits.service.js'
+import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
+import { logMmaError } from './mmaErrorLogger.service.js'
 import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
 import { runKnowledgeFiles } from './mmaStep2/mmaKnowledgeFiles.service.js'
 import { runStillPrompter } from './mmaStep3/mmaStillPrompter.service.js'
@@ -41,8 +42,8 @@ async function insertStep(
 
 /**
  * The MMA steps of a still, each fed by the one before. Nobody waits on them:
- * a step that fails says why in its payload's `error`, and the steps after it
- * do not run.
+ * a step that fails says why in its payload's `error`, the steps after it do
+ * not run, and the customer gets their matcha back.
  */
 async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest) {
   const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
@@ -53,13 +54,15 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     .eq('mg_id', `mma_step:${generationId}:1`)
 
   if (error) throw new Error(error.message)
-  if (!assets.output) return
+    //If the first step fails, we refund the charge and do not proceed to the next steps.
+  if (!assets.output) return refundMmaCharge(passId, generationId)
 
   const knowledge = runKnowledgeFiles(request.isCreative ? 'creative' : 'niche', assets.output)
   await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
 
   const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
+  if (prompt.error) return refundMmaCharge(passId, generationId)
 }
 
 /**
@@ -182,8 +185,13 @@ export async function startStillGeneration(
   if (updateError) throw new Error(updateError.message)
 
 //This line is for starting the MMA steps asynchronously: Create Asset Intelligence, then the knowledge files, then the still prompter.
-//Any errors during this process are caught and logged to the console.
-  runStillPipeline(passId, generationId, request).catch(console.error)
+//Any error thrown along the way (a row that could not be written…) is logged, and the matcha is refunded.
+  runStillPipeline(passId, generationId, request)
+    .catch((error) => {
+      logMmaError(error)
+      return refundMmaCharge(passId, generationId)
+    })
+    .catch(logMmaError)
 
   return { generationId, credits: creditsAfter }
 }

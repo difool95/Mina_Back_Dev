@@ -15,6 +15,7 @@ import {
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { CreateAssetPayload, CreateAssetPlan, InventoryItem, StudioUpload } from '../../../types/mma/mma.types.js'
 import { askClaude } from '../../thirdPartyClients/anthropic.client.js'
+import { logMmaError } from '../mmaErrorLogger.service.js'
 
 //this method is for converting a StudioUpload object into an InventoryItem object. It takes a StudioUpload object and an index as parameters and returns
 //an InventoryItem object with the appropriate properties set.
@@ -103,6 +104,7 @@ export async function runCreateAssetIntelligence(brief: string, uploads: StudioU
     payload.output = planOutput(plan, inventory, message.model)
   } catch (error) {
     payload.error = (error as Error).message
+    logMmaError(error)
   }
 
   return { ...payload, timing: stepTiming(startedAt) }

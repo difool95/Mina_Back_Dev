@@ -18,6 +18,7 @@ import type {
   StillPrompterPayload,
 } from '../../../types/mma/mma.types.js'
 import { askClaude } from '../../thirdPartyClients/anthropic.client.js'
+import { logMmaError } from '../mmaErrorLogger.service.js'
 
 /**
  * MMA step 3, the still prompter: asks Claude for the clean prompt the image
@@ -90,6 +91,7 @@ export async function runStillPrompter(
     payload.output = prompterOutput(answer, docs, isSceneEdit(assetPlan))
   } catch (error) {
     payload.error = (error as Error).message
+    logMmaError(error)
   }
 
   return { ...payload, timing: stepTiming(startedAt) }

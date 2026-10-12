@@ -3,6 +3,7 @@ import express, { Router } from 'express'
 import { deleteUpload, postStillGeneration, postUpload } from '../controllers/mma/mma.controller.js'
 import { UPLOAD_EXTENSIONS, UPLOAD_MAX_SIZE } from '../lib/constants.js'
 import { requireUser } from '../middlewares/auth.middleware.js'
+import { mmaErrorLogger } from '../middlewares/error.middleware.js'
 
 export const mmaRouter = Router()
 
@@ -17,3 +18,6 @@ mmaRouter.post(
   postUpload,
 )
 mmaRouter.delete('/uploads', requireUser, deleteUpload)
+
+// Last, so it sees the error of every MMA route above.
+mmaRouter.use(mmaErrorLogger)

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { LOT_LIFETIME_MONTHS, SIGNUP_BONUS } from '../lib/constants.js'
+import { LOT_LIFETIME_MONTHS, SIGNUP_BONUS, STILL_GENERATION_COST } from '../lib/constants.js'
 import { addMonths } from '../lib/date.js'
 import type { MmaPreferences } from '../types/customer.types.js'
 import type {
@@ -323,6 +323,67 @@ export async function addAutoRefillCredits(
   if (error) throw new Error(error.message)
 
   return { credited: true, credits: outcome.creditsAfter }
+}
+
+/**
+ * Gives back the matchas a Create generation was charged when its MMA cycle
+ * fails, once per generation: the ledger's `mma_refund` row for it is what
+ * stops a second refund. The refunded lot keeps the customer's current expiry.
+ */
+export async function refundMmaCharge(passId: string, generationId: string) {
+  const refId = `mma:${generationId}`
+
+  const { data: customer, error: customerError } = await supabase
+    .from('mega_customers')
+    .select('mg_credits, mg_credit_lots, mg_expires_at')
+    .eq('mg_pass_id', passId)
+    .maybeSingle()
+
+  if (customerError) throw new Error(customerError.message)
+  if (!customer) throw new Error(`No mega_customers row for ${passId}`)
+
+  const { data: alreadyRefunded, error: ledgerError } = await supabase
+    .from('mega_generations')
+    .select('mg_id')
+    .eq('mg_record_type', 'credit_transaction')
+    .eq('mg_ref_type', 'mma_refund')
+    .eq('mg_ref_id', refId)
+    .limit(1)
+    .maybeSingle()
+
+  if (ledgerError) throw new Error(ledgerError.message)
+  if (alreadyRefunded) return
+
+  const at = new Date().toISOString()
+  const creditsBefore = Number(customer.mg_credits ?? 0)
+  const creditsAfter = creditsBefore + STILL_GENERATION_COST
+  const lots = Array.isArray(customer.mg_credit_lots) ? (customer.mg_credit_lots as CreditLot[]) : []
+
+  await recordTransaction({
+    passId,
+    delta: STILL_GENERATION_COST,
+    reason: 'mma_refund',
+    refType: 'mma_refund',
+    refId,
+    source: 'mma',
+    meta: { expires_at: customer.mg_expires_at, credits_after: creditsAfter, credits_before: creditsBefore },
+    at,
+  })
+
+  const lot: CreditLot = {
+    amount: STILL_GENERATION_COST,
+    ref_id: refId,
+    ref_type: 'mma_refund',
+    created_at: at,
+    expires_at: customer.mg_expires_at,
+  }
+
+  const { error } = await supabase
+    .from('mega_customers')
+    .update({ mg_credits: creditsAfter, mg_credit_lots: [...lots, lot], mg_updated_at: at })
+    .eq('mg_pass_id', passId)
+
+  if (error) throw new Error(error.message)
 }
 
 /**
