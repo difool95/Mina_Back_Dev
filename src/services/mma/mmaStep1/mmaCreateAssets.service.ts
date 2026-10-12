@@ -14,7 +14,7 @@ import {
   planOutput,
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { CreateAssetPayload, CreateAssetPlan, InventoryItem, StudioUpload } from '../../../types/mma/mma.types.js'
-import { askClaude, imageBlock } from '../../thirdPartyClients/anthropic.client.js'
+import { askClaude } from '../../thirdPartyClients/anthropic.client.js'
 
 //this method is for converting a StudioUpload object into an InventoryItem object. It takes a StudioUpload object and an index as parameters and returns
 //an InventoryItem object with the appropriate properties set.
@@ -59,7 +59,6 @@ export async function runCreateAssetIntelligence(brief: string, uploads: StudioU
     const inventory = uploads.map((upload, i) => toInventoryItem(upload, i + 1))
     payload.input.inventory = inventory
 
-    const images = await Promise.all(inventory.map((item) => imageBlock(item.url)))
     const request: Anthropic.MessageCreateParamsNonStreaming = {
       model: CREATE_ASSET_DIRECTOR.model,
       tools: [CREATE_ASSET_PLAN_TOOL],
@@ -71,7 +70,11 @@ export async function runCreateAssetIntelligence(brief: string, uploads: StudioU
           role: 'user',
           content: [
             { type: 'text', text: briefMessage(brief, inventory) },
-            ...inventory.flatMap((item, i) => [{ type: 'text' as const, text: imageNote(item) }, images[i]!]),
+            // Claude fetches each picture from its public CDN URL itself.
+            ...inventory.flatMap((item) => [
+              { type: 'text' as const, text: imageNote(item) },
+              { type: 'image' as const, source: { type: 'url' as const, url: item.url } },
+            ]),
           ],
         },
       ],

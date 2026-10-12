@@ -6,22 +6,6 @@ import type { ClaudeProvider, ClaudeUsage } from '../../types/mma/mma.types.js'
 
 export const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
 
-//This method is used to convert an image URL to a base64 encoded string that can be sent to the Anthropic API. It fetches the image from the given URL,
-//checks if the response is OK, and then converts the image data to a base64 string.
-export async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Could not read ${url} (${response.status})`)
-
-  return {
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: response.headers.get('content-type') as Anthropic.Base64ImageSource['media_type'],
-      data: Buffer.from(await response.arrayBuffer()).toString('base64'),
-    },
-  }
-}
-
 /**
  * Asks Claude for an MMA step, and returns its answer with what the step
  * stores beside the request: how it was routed and cached, and its usage.

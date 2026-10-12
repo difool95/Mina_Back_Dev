@@ -17,7 +17,7 @@ import type {
   StillPrompterAnswer,
   StillPrompterPayload,
 } from '../../../types/mma/mma.types.js'
-import { askClaude, imageBlock } from '../../thirdPartyClients/anthropic.client.js'
+import { askClaude } from '../../thirdPartyClients/anthropic.client.js'
 
 /**
  * MMA step 3, the still prompter: asks Claude for the clean prompt the image
@@ -48,7 +48,6 @@ export async function runStillPrompter(
   }
 
   try {
-    const images = await Promise.all(labeled.map((image) => imageBlock(image.url)))
     const request: Anthropic.MessageCreateParamsNonStreaming = {
       model: STILL_PROMPTER.model,
       //THE SYSTEM IS BUILT FROM THE DOCS AND THE CONTEXT
@@ -58,7 +57,11 @@ export async function runStillPrompter(
           role: 'user',
           content: [
             { type: 'text', text: JSON.stringify(input, null, 2) },
-            ...labeled.flatMap((image, i) => [{ type: 'text' as const, text: imageCaption(image, i + 1) }, images[i]!]),
+            // Claude fetches each picture from its public CDN URL itself.
+            ...labeled.flatMap((image, i) => [
+              { type: 'text' as const, text: imageCaption(image, i + 1) },
+              { type: 'image' as const, source: { type: 'url' as const, url: image.url } },
+            ]),
           ],
         },
       ],
