@@ -148,23 +148,280 @@ export interface CreateAssetOutput {
   uncertain_memory_ids: string[]
 }
 
+/** When an MMA step ran, as every step's payload records it. */
+export interface StepTiming {
+  started_at: string
+  ended_at: string
+  duration_ms: number
+}
+
+/** The tokens one MMA call to Claude spent. */
+export interface ClaudeUsage {
+  model: string
+  stop_reason: string | null
+  input_tokens: number
+  output_tokens: number
+  cache_read_input_tokens: number
+  cache_creation_input_tokens: number
+}
+
+export interface ClaudeProvider {
+  name: 'anthropic'
+  stop_reason: string | null
+}
+
 /** `mg_payload` of MMA step 1 (`create_asset_intelligence`). */
 export interface CreateAssetPayload {
   /** The tool input exactly as Claude returned it, serialised. */
   raw: string | null
   error: string | null
   input: { inventory: InventoryItem[]; user_brief: string }
-  usage: {
-    model: string
-    stop_reason: string | null
-    input_tokens: number
-    output_tokens: number
-    cache_read_input_tokens: number
-    cache_creation_input_tokens: number
-  } | null
+  usage: ClaudeUsage | null
   output: CreateAssetOutput | null
-  timing: { started_at: string; ended_at: string; duration_ms: number }
+  timing: StepTiming
   /** What was sent to Claude, images included, plus how it was routed and cached. */
   request: Record<string, unknown> | null
-  provider: { name: 'anthropic'; stop_reason: string | null } | null
+  provider: ClaudeProvider | null
+}
+
+/** The studio's Create lane switch: Niche or Creative. */
+export type StillLane = 'niche' | 'creative'
+
+/** One structured fact test in the knowledge router catalog. */
+export interface KnowledgeCondition {
+  fact: string
+  op: 'eq' | 'in' | 'includes_any'
+  value: unknown
+}
+
+/** One guide of `knowledge-router-catalog.json`: its file, and the facts it applies to. */
+export interface KnowledgeGuide {
+  key: string
+  title: string
+  file: string
+  media: string[]
+  phases: string[]
+  kind: string
+  specialized: boolean
+  include_reason: string
+  /** Every condition of `all` must hold, and one branch of `any_of` when there is any. */
+  match: { all?: KnowledgeCondition[]; any_of?: { all: KnowledgeCondition[] }[] }
+}
+
+export interface KnowledgeCatalog {
+  schema: string
+  version: number
+  description: string
+  guides: KnowledgeGuide[]
+}
+
+/** A catalog guide with its file read in. */
+export interface KnowledgeDoc extends KnowledgeGuide {
+  content: string
+  chars: number
+  tokens: number
+  content_hash: string
+}
+
+/** The production facts MMA step 2 routes on, built from step 1's asset plan. */
+export interface KnowledgeFacts {
+  media: 'image'
+  phase: 'image_prompt'
+  engine: string
+  audio_mode: 'muted'
+  camera_plan: false
+  target_format: string
+  source_faithful: boolean
+  target_subjects: string[]
+  human_safety_scope: string[]
+  target_audio_nature: 'unknown'
+  target_output_medium: string
+  target_capture_device: string
+  target_visual_register: string
+  /** Null when step 1 could not tell. */
+  requires_physical_realism: boolean | null
+}
+
+/** Whether a fact was given to step 2, or is one the catalog uses and step 2 filled in as `unknown`. */
+export type FactSource = 'facts' | 'missing'
+
+/** A guide's media or phase gate, checked against the facts. */
+export interface GateEvidence {
+  fact: 'media' | 'phase'
+  actual: unknown
+  source: FactSource
+  matched: boolean
+  expected: string[]
+}
+
+/** One condition of a guide, checked against the facts. */
+export interface FactEvidence {
+  fact: string
+  /** `all`, or `any_of_<n>` for the branch it belongs to. */
+  group: string
+  actual: unknown
+  source: FactSource
+  matched: boolean
+  expected: unknown
+  operator: KnowledgeCondition['op']
+}
+
+export type KnowledgeReasonCode =
+  | 'included'
+  | 'media_gate_failed'
+  | 'phase_gate_failed'
+  | 'required_fact_mismatch'
+  | 'no_positive_target_match'
+
+/** One catalog guide, as step 2 judged it. */
+export interface KnowledgeCandidate {
+  key: string
+  kind: string
+  chars: number
+  title: string
+  reason: string
+  status: 'included' | 'excluded'
+  tokens: number
+  decision: 'include' | 'exclude'
+  evidence: {
+    media: GateEvidence
+    phase: GateEvidence
+    any_of: { index: number; matched: boolean; evidence: FactEvidence[] }[]
+    required: FactEvidence[]
+  }
+  included: boolean
+  sent_ready: boolean
+  reason_code: KnowledgeReasonCode
+  specialized: boolean
+  token_count: number
+  content_hash: string
+  token_estimate_method: 'ceil_chars_div_4'
+}
+
+/** A guide step 2 picked, as its output lists it. */
+export interface KnowledgeSelection {
+  key: string
+  chars: number
+  title: string
+  tokens: number
+}
+
+/** Step 2's receipt: every guide it weighed, and why each was or was not picked. */
+export interface KnowledgeRoute {
+  facts: Record<string, unknown>
+  method: string
+  schema: string
+  catalog: { file: string; hash: string; schema: string; version: number }
+  sent_keys: string[]
+  candidates: KnowledgeCandidate[]
+  catalog_hash: string
+  fact_sources: Record<string, FactSource>
+  selected_keys: string[]
+  router_version: string
+  sent_ready_docs: (KnowledgeSelection & { sent_ready: true; token_count: number; content_hash: string })[]
+  normalized_facts: Record<string, unknown>
+  unrecognized_values: Record<string, unknown>
+  selected_token_count: number
+  total_context_tokens: number
+  ignored_legacy_inputs: Record<string, boolean>
+}
+
+/** `mg_payload` of MMA step 2 (`knowledge_files`). */
+export interface KnowledgeFilesPayload {
+  error: null
+  input: { lane: StillLane; mode: 'create'; facts: KnowledgeFacts }
+  output: { route: KnowledgeRoute; method: string; selected: KnowledgeSelection[] }
+  timing: StepTiming
+}
+
+/** One picture step 3 sends to Claude, numbered in the order it is sent. */
+export type ImageOrderItem = { image: number } & Pick<
+  CreateAssetItem,
+  'semantic_type' | 'job' | 'name' | 'presentation' | 'background_policy' | 'color_policy' | 'integration_notes' | 'reason'
+>
+
+/** A picture that goes into the image, as opposed to the base scene. */
+export type FeaturedAsset = Pick<
+  CreateAssetItem,
+  'name' | 'description' | 'semantic_type' | 'presentation' | 'background_policy' | 'color_policy' | 'integration_notes'
+>
+
+/** What step 3 tells Claude about the generation, in the order Claude reads it. */
+export interface StillPrompterInput {
+  user_brief: string
+  style: string
+  preferences: Record<string, unknown>
+  hard_blocks: string[]
+  create_strategy: CreateStrategy
+  preserve_scene: boolean
+  asset_plan_summary: string
+  scene_edit_contract: string
+  person_recast: CreateAssetOutput['person_recast']
+  person_recast_contract: string
+  image_order_for_ai: ImageOrderItem[]
+  featured_assets: FeaturedAsset[]
+  notes: string
+  knowledge_guides: { key: string; title: string }[]
+}
+
+/** One guide's line of the knowledge receipt, as Claude reports it. */
+export interface ReportedReceipt {
+  key: string
+  applied: boolean
+  lesson: string
+  guide_evidence: string
+  prompt_evidence: string
+}
+
+/** Claude's answer to step 3. */
+export interface StillPrompterAnswer {
+  clean_prompt: string
+  negative_prompt: string
+  /** Owed on every answer, but nothing makes Claude send it. */
+  knowledge_receipt?: ReportedReceipt[]
+}
+
+/** A receipt line once its evidence has been looked for in the guide and in the prompt. */
+export interface VerifiedReceipt extends ReportedReceipt {
+  title: string
+  valid: boolean
+  verification: 'exact_guide_and_prompt_evidence' | 'missing_receipt' | 'reported_not_applied' | 'evidence_not_verified'
+  reported_applied: boolean
+  evidence_verified: boolean
+  guide_evidence_verified: boolean
+  guide_evidence_substantive: boolean
+  prompt_evidence_substantive: boolean
+}
+
+export interface StillPrompterOutput {
+  debug: StillPrompterAnswer
+  parsed_ok: true
+  /** The prompt step 4 renders. */
+  clean_prompt: string
+  knowledge_receipt: VerifiedReceipt[]
+  /** Claude's prompt with its negatives appended, before the scene-edit lock goes in front. */
+  prompter_clean_prompt: string
+}
+
+/** A picture step 3 sent, with the caption Claude read just ahead of it. */
+export interface LabeledImage {
+  url: string
+  note: string
+  role: string
+}
+
+/** `mg_payload` of MMA step 3 (`gpt_still_one_shot`). */
+export interface StillPrompterPayload {
+  /** A short preview of the context; the whole of it is in `request.system`. */
+  ctx: string
+  /** Claude's answer exactly as it came. */
+  raw: string | null
+  error: string | null
+  input: StillPrompterInput
+  usage: ClaudeUsage | null
+  output: StillPrompterOutput | null
+  timing: StepTiming
+  request: Record<string, unknown> | null
+  provider: ClaudeProvider | null
+  labeledImages: LabeledImage[]
 }

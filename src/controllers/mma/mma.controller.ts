@@ -22,6 +22,7 @@ const stillBody = z.object({
   ),
 })
 
+//THIS METHOD IS USED TO START THE STILL GENERATION PROCESS. IT TAKES THE REQUEST AND RESPONSE OBJECTS AS PARAMETERS AND RETURNS A JSON RESPONSE WITH THE RESULT OF THE STILL GENERATION.
 export async function postStillGeneration(req: Request, res: Response) {
   const body = stillBody.parse(req.body)
 
@@ -38,12 +39,14 @@ export async function postStillGeneration(req: Request, res: Response) {
 /** The raw bytes of one picture; `express.raw` leaves the body unset when its type is not one we store. */
 const uploadBody = z.instanceof(Buffer, { error: 'Expected a JPEG, PNG or WebP picture' })
 
+//THIS METHOD IS USED TO UPLOAD FILES TO THE SERVER. IT REQUIRES THE USER TO BE AUTHENTICATED AND CHECKS THAT THE UPLOADED FILE IS OF A VALID TYPE AND SIZE.
 export async function postUpload(req: Request, res: Response) {
   const body = uploadBody.parse(req.body)
 
   res.json({ url: await storeStudioImage(req.userId!, body, req.get('content-type') ?? '') })
 }
 
+//THIS METHOD IS USED TO DELETE A PICTURE THE USER UPLOADED TO THE R2 CLOUDFLARE. IT TAKES THE USERID AND THE URL OF THE PICTURE AS PARAMETERS.
 export async function deleteUpload(req: Request, res: Response) {
   await deleteStudioImage(req.userId!, z.object({ url: assetUrl }).parse(req.body).url)
 

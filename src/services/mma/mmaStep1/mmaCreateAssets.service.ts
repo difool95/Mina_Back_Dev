@@ -2,10 +2,10 @@ import type Anthropic from '@anthropic-ai/sdk'
 
 import { env } from '../../../config/env.js'
 import { CREATE_ASSET_DIRECTOR } from '../../../lib/constants.js'
+import { stepTiming } from '../../../lib/date.js'
 import {
   CREATE_ASSET_DIRECTOR_PROMPT,
   CREATE_ASSET_PLAN_TOOL,
-  CREATE_ASSET_PROMPT_CACHE,
   PILLS,
   SCENE_LIBRARY_NAME,
   briefMessage,
@@ -14,8 +14,7 @@ import {
   planOutput,
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { CreateAssetPayload, CreateAssetPlan, InventoryItem, StudioUpload } from '../../../types/mma/mma.types.js'
-import { anthropic } from '../../thirdPartyClients/anthropic.client.js'
-import { supabase } from '../../thirdPartyClients/supabase.client.js'
+import { askClaude, imageBlock } from '../../thirdPartyClients/anthropic.client.js'
 
 //this method is for converting a StudioUpload object into an InventoryItem object. It takes a StudioUpload object and an index as parameters and returns
 //an InventoryItem object with the appropriate properties set.
@@ -30,20 +29,6 @@ function toInventoryItem(upload: StudioUpload, index: number): InventoryItem {
   }
 }
 
-async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Could not read ${url} (${response.status})`)
-
-  return {
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: response.headers.get('content-type') as Anthropic.Base64ImageSource['media_type'],
-      data: Buffer.from(await response.arrayBuffer()).toString('base64'),
-    },
-  }
-}
-
 /**
  * MMA step 1, Create Asset Intelligence: asks the Create Asset Director what
  * each picture is for in this generation. The studio has already put every
@@ -52,15 +37,10 @@ async function imageBlock(url: string): Promise<Anthropic.ImageBlockParam> {
  * production profile (register, capture device, subjects, safety scope) that
  * step 2 picks its knowledge files by.
  *
- * Fills the `mg_payload` that `startStillGeneration` left empty on the step's
- * row. Nobody waits on this, so a failure is written to the payload's `error`
- * rather than thrown, next to whatever had been gathered by then.
+ * Returns the step's `mg_payload`. A failure is written to its `error` rather
+ * than thrown, next to whatever had been gathered by then, and leaves `output` null.
  */
-export async function runCreateAssetIntelligence(
-  generationId: string,
-  brief: string,
-  uploads: StudioUpload[],
-) {
+export async function runCreateAssetIntelligence(brief: string, uploads: StudioUpload[]): Promise<CreateAssetPayload> {
   const startedAt = new Date()
   //the payload is the data that will be stored in the mg_payload column of the mega_generations table. It contains the input,
   //output, and other information about the MMA Step 1 of the generation.
@@ -105,33 +85,13 @@ export async function runCreateAssetIntelligence(
 
     payload.request = { ...request, agent_key: CREATE_ASSET_DIRECTOR.key, configured_model: request.model }
 
-    //THS IS THE CALL TO CLAUDE. THE REQUEST IS SENT TO CLAUDE AND THE RESPONSE IS STORED IN THE PAYLOAD OBJECT. 
+    //THS IS THE CALL TO CLAUDE. THE REQUEST IS SENT TO CLAUDE AND THE RESPONSE IS STORED IN THE PAYLOAD OBJECT.
     //THE PAYLOAD OBJECT WILL BE STORED IN THE MG_PAYLOAD COLUMN OF THE MEGA_GENERATIONS TABLE.
-    const message = await anthropic.messages.create(request)
-    const { usage } = message
-    const cacheRead = usage.cache_read_input_tokens ?? 0
-    const cacheCreation = usage.cache_creation_input_tokens ?? 0
+    const { message, routing, usage, provider } = await askClaude(request, [])
 
-    payload.request = {
-      ...payload.request,
-      prompt_cache: {
-        ...CREATE_ASSET_PROMPT_CACHE,
-        status: cacheRead ? 'read' : 'write',
-        cache_read_input_tokens: cacheRead,
-        cache_creation_input_tokens: cacheCreation,
-      },
-      executed_model: message.model,
-      routing_status: message.model === request.model ? 'matched' : 'mismatched',
-    }
-    payload.usage = {
-      model: message.model,
-      stop_reason: message.stop_reason,
-      input_tokens: usage.input_tokens,
-      output_tokens: usage.output_tokens,
-      cache_read_input_tokens: cacheRead,
-      cache_creation_input_tokens: cacheCreation,
-    }
-    payload.provider = { name: 'anthropic', stop_reason: message.stop_reason }
+    payload.request = { ...payload.request, ...routing }
+    payload.usage = usage
+    payload.provider = provider
 
     const plan = message.content.find((block) => block.type === 'tool_use')?.input as CreateAssetPlan | undefined
     if (!plan) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
@@ -142,17 +102,5 @@ export async function runCreateAssetIntelligence(
     payload.error = (error as Error).message
   }
 
-  const endedAt = new Date()
-  const timing = {
-    started_at: startedAt.toISOString(),
-    ended_at: endedAt.toISOString(),
-    duration_ms: endedAt.getTime() - startedAt.getTime(),
-  }
-
-  const { error } = await supabase
-    .from('mega_generations')
-    .update({ mg_payload: { ...payload, timing } satisfies CreateAssetPayload, mg_updated_at: timing.ended_at })
-    .eq('mg_id', `mma_step:${generationId}:1`)
-
-  if (error) throw new Error(error.message)
+  return { ...payload, timing: stepTiming(startedAt) }
 }

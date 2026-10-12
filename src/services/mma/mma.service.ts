@@ -1,10 +1,66 @@
 import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COST } from '../../lib/constants.js'
-import type { StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
+import type { StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
 import { recordTransaction } from '../../services/credits.service.js'
 import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
+import { runKnowledgeFiles } from './mmaStep2/mmaKnowledgeFiles.service.js'
+import { runStillPrompter } from './mmaStep3/mmaStillPrompter.service.js'
 import { supabase } from '../../services/thirdPartyClients/supabase.client.js'
+
+/** The `mma_step` row holding one step's `mg_payload`, under its generation. */
+function stepRow(passId: string, generationId: string, stepNo: number, stepType: string, payload: object, at: string) {
+  return {
+    mg_pass_id: passId,
+    mg_created_at: at,
+    mg_updated_at: at,
+    mg_id: `mma_step:${generationId}:${stepNo}`,
+    mg_record_type: 'mma_step',
+    mg_generation_id: generationId,
+    mg_parent_id: `generation:${generationId}`,
+    mg_step_no: stepNo,
+    mg_step_type: stepType,
+    mg_payload: payload,
+  }
+}
+
+/** Writes a finished step's row, dated when the step ended. */
+async function insertStep(
+  passId: string,
+  generationId: string,
+  stepNo: number,
+  stepType: string,
+  payload: { timing: StepTiming },
+) {
+  const { error } = await supabase
+    .from('mega_generations')
+    .insert(stepRow(passId, generationId, stepNo, stepType, payload, payload.timing.ended_at), { defaultToNull: false })
+
+  if (error) throw new Error(error.message)
+}
+
+/**
+ * The MMA steps of a still, each fed by the one before. Nobody waits on them:
+ * a step that fails says why in its payload's `error`, and the steps after it
+ * do not run.
+ */
+async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest) {
+  const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
+
+  const { error } = await supabase
+    .from('mega_generations')
+    .update({ mg_payload: assets, mg_updated_at: assets.timing.ended_at })
+    .eq('mg_id', `mma_step:${generationId}:1`)
+
+  if (error) throw new Error(error.message)
+  if (!assets.output) return
+
+  const knowledge = runKnowledgeFiles(request.isCreative ? 'creative' : 'niche', assets.output)
+  await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
+
+  const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
+  await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
+}
 
 /**
  * Starts a Create (still image) generation: the rows that frame it, then the
@@ -17,7 +73,7 @@ import { supabase } from '../../services/thirdPartyClients/supabase.client.js'
  * - the `generation` row and its MMA step 1, both skeletons the pipeline fills in;
  * - the `credit_transaction` charging for it, with the balance on `mega_customers`.
  *
- * Then starts MMA step 1, which fills its row in on its own.
+ * Then starts the MMA steps: step 1 fills its row in, steps 2 and 3 add theirs.
  */
 export async function startStillGeneration(
   userId: string,
@@ -97,16 +153,7 @@ export async function startStillGeneration(
       mg_content_type: 'image',
       mg_cost_data: {},
     },
-    {
-      ...owned,
-      mg_id: `mma_step:${generationId}:1`,
-      mg_record_type: 'mma_step',
-      mg_generation_id: generationId,
-      mg_parent_id: `generation:${generationId}`,
-      mg_step_no: 1,
-      mg_step_type: 'create_asset_intelligence',
-      mg_payload: {},
-    },
+    stepRow(passId, generationId, 1, 'create_asset_intelligence', {}, at),
   ]
 
   // One insert for every row, each leaving the columns it does not set at the
@@ -134,9 +181,9 @@ export async function startStillGeneration(
 
   if (updateError) throw new Error(updateError.message)
 
-//This line is for starting the Create Asset Intelligence process asynchronously. It calls the runCreateAssetIntelligence function with the generationId,
-//brief, and uploads from the request. Any errors during this process are caught and logged to the console.
-  runCreateAssetIntelligence(generationId, request.brief, request.uploads).catch(console.error)
+//This line is for starting the MMA steps asynchronously: Create Asset Intelligence, then the knowledge files, then the still prompter.
+//Any errors during this process are caught and logged to the console.
+  runStillPipeline(passId, generationId, request).catch(console.error)
 
   return { generationId, credits: creditsAfter }
 }

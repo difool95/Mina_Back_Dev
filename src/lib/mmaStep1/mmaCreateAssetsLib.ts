@@ -32,16 +32,6 @@ export const SCENE_LIBRARY_NAME = 'Mina Scene Library template'
 const SCENE_LIBRARY_DESCRIPTION =
   "A scene from Mina's own library, not the customer's photo: its setting, camera, pose, wardrobe, light and grade are the reference. Anyone in it is a placeholder model."
 
-/** How the request to Claude is cached, stored beside it. The token counts come from the response. */
-export const CREATE_ASSET_PROMPT_CACHE = {
-  ttl: '5m',
-  mode: 'explicit',
-  type: 'ephemeral',
-  scope: 'tools_and_system_prefix',
-  provider: 'anthropic',
-  knowledge_files: [],
-}
-
 /** The Create Asset Director's instructions: how to read the brief and every picture. */
 export const CREATE_ASSET_DIRECTOR_PROMPT = `You are Mina's Create Asset Director. Read the user's brief AND every image.
 Your job is to decide what each image means for this generation. Upload-pill
