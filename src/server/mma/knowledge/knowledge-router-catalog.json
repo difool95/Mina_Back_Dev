@@ -1,0 +1,326 @@
+{
+  "schema": "mina.knowledge.catalog.v1",
+  "version": 1,
+  "description": "Deterministic guide applicability. Conditions consume normalized target facts only; user brief text and source-image appearance are never routing evidence.",
+  "guides": [
+    {
+      "key": "safe_wording",
+      "title": "Provider-safe wording — content-safety phrasing",
+      "file": "provider-safe-wording.md",
+      "media": ["image", "video"],
+      "phases": ["image_prompt", "video_prompt"],
+      "kind": "safety",
+      "specialized": true,
+      "include_reason": "A target human, skin or wardrobe scope needs provider-safe wording on an image engine or Kling.",
+      "match": {
+        "any_of": [
+          {
+            "all": [
+              { "fact": "media", "op": "eq", "value": "image" },
+              { "fact": "human_safety_scope", "op": "includes_any", "value": ["person", "skin", "wardrobe"] }
+            ]
+          },
+          {
+            "all": [
+              { "fact": "media", "op": "eq", "value": "video" },
+              { "fact": "engine", "op": "eq", "value": "kling" },
+              { "fact": "human_safety_scope", "op": "includes_any", "value": ["person", "skin", "wardrobe"] }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "seedance_common",
+      "title": "Seedance — rules shared by every version (2.0 and 2.5)",
+      "file": "seedance-common.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved video engine is Seedance, on any version.",
+      "match": { "all": [{ "fact": "engine", "op": "eq", "value": "seedance" }] }
+    },
+    {
+      "key": "seedance_prompting",
+      "title": "Seedance 2.0 prompting guide",
+      "file": "seedance-prompting.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved video engine is Seedance on version 2.0 (or an unversioned Seedance job, which is 2.0 today).",
+      "match": {
+        "all": [
+          { "fact": "engine", "op": "eq", "value": "seedance" },
+          { "fact": "engine_version", "op": "in", "value": ["2_0", "unknown"] }
+        ]
+      }
+    },
+    {
+      "key": "seedance_2_5_prompting",
+      "title": "Seedance 2.5 prompting guide (30s, 50 materials)",
+      "file": "seedance-2.5.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved video engine is Seedance on version 2.5, whose durations and reference ceilings differ from 2.0.",
+      "match": {
+        "all": [
+          { "fact": "engine", "op": "eq", "value": "seedance" },
+          { "fact": "engine_version", "op": "eq", "value": "2_5" }
+        ]
+      }
+    },
+    {
+      "key": "seed_audio_prompting",
+      "title": "Seed Audio 1.0 — scene sound design",
+      "file": "seed-audio-1.0.md",
+      "media": ["audio"],
+      "phases": ["audio_prompt"],
+      "kind": "audio_engine",
+      "specialized": false,
+      "include_reason": "The resolved audio-production engine is exactly Seed Audio 1.0.",
+      "match": { "all": [{ "fact": "audio_engine", "op": "eq", "value": "seed_audio" }] }
+    },
+    {
+      "key": "kling_prompting",
+      "title": "Kling 3.0 / 3.0 Omni prompting guide",
+      "file": "kling-prompting.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved video engine is exactly Kling.",
+      "match": { "all": [{ "fact": "engine", "op": "eq", "value": "kling" }] }
+    },
+    {
+      "key": "seedance_cinematic",
+      "title": "Seedance cinematic commercials & short-drama",
+      "file": "seedance-cinematic-commercials.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "target_register",
+      "specialized": true,
+      "include_reason": "A Seedance target is explicitly cinematic, commercial, trailer-like or short drama.",
+      "match": {
+        "all": [{ "fact": "engine", "op": "eq", "value": "seedance" }],
+        "any_of": [
+          { "all": [{ "fact": "target_visual_register", "op": "eq", "value": "cinematic" }] },
+          { "all": [{ "fact": "target_format", "op": "in", "value": ["commercial", "brand_film", "trailer", "short_drama"] }] }
+        ]
+      }
+    },
+    {
+      "key": "video_best_practices",
+      "title": "Video realism best practices (talking-head)",
+      "file": "ugc-best-practices.md",
+      "media": ["video"],
+      "phases": ["scenario", "video_prompt"],
+      "kind": "target_format",
+      "specialized": true,
+      "include_reason": "The target format is explicitly creator-to-camera or talking-head content.",
+      "match": {
+        "all": [
+          { "fact": "target_format", "op": "in", "value": ["talking_to_camera", "talking_head", "monologue", "review", "testimonial"] }
+        ]
+      }
+    },
+    {
+      "key": "voiceover_mode",
+      "title": "Voice-over mode best practices",
+      "file": "voiceover-mode.md",
+      "media": ["video"],
+      "phases": ["scenario", "video_prompt"],
+      "kind": "target_format",
+      "specialized": true,
+      "include_reason": "The target is explicitly off-screen voice-over over b-roll.",
+      "match": {
+        "all": [
+          { "fact": "target_format", "op": "eq", "value": "voice_over" },
+          { "fact": "target_audio_nature", "op": "eq", "value": "voice_over" }
+        ]
+      }
+    },
+    {
+      "key": "unboxing_asmr",
+      "title": "Unboxing & ASMR best practices",
+      "file": "unboxing-asmr.md",
+      "media": ["video"],
+      "phases": ["scenario", "video_prompt"],
+      "kind": "target_format",
+      "specialized": true,
+      "include_reason": "The target is explicitly non-conversational unboxing or ASMR.",
+      "match": {
+        "all": [
+          { "fact": "target_format", "op": "eq", "value": "unboxing_asmr" },
+          { "fact": "target_audio_nature", "op": "in", "value": ["asmr", "ambient_only"] }
+        ]
+      }
+    },
+    {
+      "key": "camera_angles",
+      "title": "Camera movements & transitions — the per-frame motion grammar",
+      "file": "camera-angles-and-movements.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "motion_contract",
+      "specialized": true,
+      "include_reason": "The structured job facts explicitly request a generated camera plan.",
+      "match": { "all": [{ "fact": "camera_plan", "op": "eq", "value": true }] }
+    },
+    {
+      "key": "motion_direction",
+      "title": "Motion direction — vehicles, moving objects & travel truth",
+      "file": "motion-direction.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "motion_contract",
+      "specialized": true,
+      "include_reason": "The target must obey physical realism, so every moving subject states its direction of travel.",
+      "match": { "all": [{ "fact": "requires_physical_realism", "op": "eq", "value": true }] }
+    },
+    {
+      "key": "realism_best_practice",
+      "title": "Realism best practice — human, material & environmental truth",
+      "file": "realism-best-practice.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "target_realism",
+      "specialized": true,
+      "include_reason": "The target is explicitly intended to obey physical realism.",
+      "match": { "all": [{ "fact": "requires_physical_realism", "op": "eq", "value": true }] }
+    },
+    {
+      "key": "image_realism",
+      "title": "Image realism & posing — how a real photo of a person looks",
+      "file": "image-realism-and-posing.md",
+      "media": ["image"],
+      "phases": ["image_prompt"],
+      "kind": "target_realism",
+      "specialized": true,
+      "include_reason": "The target is an explicitly photographic, physically real person/product/material still.",
+      "match": {
+        "all": [
+          { "fact": "target_output_medium", "op": "eq", "value": "photographic" },
+          { "fact": "requires_physical_realism", "op": "eq", "value": true },
+          { "fact": "target_subjects", "op": "includes_any", "value": ["person", "body_part", "product", "scene_or_location", "material_or_element"] }
+        ]
+      }
+    },
+    {
+      "key": "audio_realism",
+      "title": "Audio realism — the mic-captured sound bed",
+      "file": "audio-realism.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "audio_contract",
+      "specialized": true,
+      "include_reason": "The provider must generate a natural audible sound bed for this target.",
+      "match": {
+        "all": [
+          { "fact": "audio_mode", "op": "eq", "value": "generated_native" },
+          { "fact": "target_audio_nature", "op": "in", "value": ["ambient_only", "on_camera_dialogue", "voice_over", "asmr", "mixed"] }
+        ]
+      }
+    },
+    {
+      "key": "cinematic_sound",
+      "title": "Cinematic sound design — SFX & film-sound craft",
+      "file": "cinematic-sound-design.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "audio_contract",
+      "specialized": true,
+      "include_reason": "The provider must generate designed sound for an explicitly cinematic target.",
+      "match": {
+        "all": [{ "fact": "audio_mode", "op": "eq", "value": "generated_native" }],
+        "any_of": [
+          { "all": [{ "fact": "target_visual_register", "op": "eq", "value": "cinematic" }] },
+          { "all": [{ "fact": "target_format", "op": "in", "value": ["commercial", "brand_film", "trailer", "short_drama"] }] }
+        ]
+      }
+    },
+    {
+      "key": "editorial_still_life",
+      "title": "Editorial still life — calm fashion-forward direction",
+      "file": "editorial-still-life.md",
+      "media": ["image", "video"],
+      "phases": ["image_prompt", "video_prompt"],
+      "kind": "target_register",
+      "specialized": true,
+      "include_reason": "The target is explicitly an editorial still-life treatment of a suitable designed object.",
+      "match": {
+        "all": [
+          { "fact": "target_visual_register", "op": "eq", "value": "editorial" },
+          { "fact": "target_subjects", "op": "includes_any", "value": ["product", "material_or_element"] }
+        ],
+        "any_of": [
+          { "all": [{ "fact": "target_format", "op": "eq", "value": "product_image" }] },
+          { "all": [{ "fact": "target_format", "op": "eq", "value": "product_demo" }] }
+        ]
+      }
+    },
+    {
+      "key": "iphone_aesthetic",
+      "title": "iPhone aesthetic — photo & video capture",
+      "file": "iphone-aesthetic.md",
+      "media": ["image", "video"],
+      "phases": ["image_prompt", "video_prompt"],
+      "kind": "target_capture",
+      "specialized": true,
+      "include_reason": "The target capture device/register is explicitly phone or iPhone.",
+      "match": {
+        "any_of": [
+          { "all": [{ "fact": "target_capture_device", "op": "in", "value": ["iphone", "phone"] }] },
+          { "all": [{ "fact": "target_visual_register", "op": "eq", "value": "phone_native" }] }
+        ]
+      }
+    },
+    {
+      "key": "gpt_image",
+      "title": "GPT Image 2 — how to use",
+      "file": "gpt-image-2-how-to-use.md",
+      "media": ["image"],
+      "phases": ["image_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved image engine is exactly GPT Image 2.",
+      "match": { "all": [{ "fact": "engine", "op": "eq", "value": "gpt_image" }] }
+    },
+    {
+      "key": "nano_banana",
+      "title": "NanoBanana Pro — how to use",
+      "file": "nano-banana-pro-how-to-use.md",
+      "media": ["image"],
+      "phases": ["image_prompt"],
+      "kind": "engine",
+      "specialized": false,
+      "include_reason": "The resolved image engine is exactly NanoBanana.",
+      "match": { "all": [{ "fact": "engine", "op": "eq", "value": "nano_banana" }] }
+    },
+    {
+      "key": "street_interview",
+      "title": "Street interview mode",
+      "file": "street-interview.md",
+      "media": ["video"],
+      "phases": ["scenario", "video_prompt"],
+      "kind": "target_format",
+      "specialized": true,
+      "include_reason": "The target format is explicitly a street or vox-pop interview.",
+      "match": { "all": [{ "fact": "target_format", "op": "eq", "value": "street_interview" }] }
+    },
+    {
+      "key": "podcast_interview",
+      "title": "Podcast / interview mode",
+      "file": "podcast-interview.md",
+      "media": ["video"],
+      "phases": ["scenario", "video_prompt"],
+      "kind": "target_format",
+      "specialized": true,
+      "include_reason": "The target format is explicitly a studio/video podcast or seated interview.",
+      "match": { "all": [{ "fact": "target_format", "op": "eq", "value": "podcast_interview" }] }
+    }
+  ]
+}
