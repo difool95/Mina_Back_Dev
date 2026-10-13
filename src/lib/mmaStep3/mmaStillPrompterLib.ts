@@ -238,15 +238,20 @@ const COLOR_NOTES: Record<ColorPolicy, string> = {
 const INTEGRATION_NOTE =
   'Rebuild target-scene perspective, scale, focal plane, occlusion/contact, cast/contact shadows, reflections, white balance, grain/noise and sharpness so it is physically present, never pasted on.'
 
-/** Whether the base scene is kept and only the part the brief names changes. */
-export const isSceneEdit = (plan: CreateAssetOutput) => plan.strategy === 'scene_edit' && plan.preserve_scene
-
 // The still prompter's system prompt is long, so the payload previews only the first 95 characters.
 export const contextPreview = () => `${STILL_PROMPTER_PROMPT.slice(0, CONTEXT_PREVIEW_CHARS)}.......`
 
 /** The pictures step 1 kept for this generation, in the order they were added. */
 const usedItems = (plan: CreateAssetOutput) =>
   plan.items.filter((item) => item.use_in_generation && item.job !== 'ignore')
+
+/**
+ * Whether the base scene is kept and only the part the brief names changes.
+ * Step 1's strategy alone is not trusted: without a base scene among the
+ * pictures sent, "edit the attached base image" would point at a logo or product.
+ */
+export const isSceneEdit = (plan: CreateAssetOutput) =>
+  plan.strategy === 'scene_edit' && plan.preserve_scene && usedItems(plan).some((item) => item.job === 'base_scene')
 
 function imageRole(item: CreateAssetItem, recast: boolean) {
   if (item.job === 'base_scene') return item.template ? SCENE_TEMPLATE_ROLE : OWN_SCENE_ROLE
