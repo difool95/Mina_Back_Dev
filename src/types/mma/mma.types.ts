@@ -15,10 +15,14 @@ export interface StudioUpload {
   origin: 'upload' | 'scene_library'
 }
 
+/** The ratio on the studio's ratio pill, landscape flip included. Same as the frontend's. */
+export type AspectRatio = '9:16' | '16:9' | '3:4' | '4:3' | '2:3' | '3:2' | '1:1'
+
 export interface StillGenerationRequest {
   /** The browser tab's studio session; a new one means a new "Mina Studio session" row. */
   studioSessionId: string
   platform: MmaPlatform
+  aspectRatio: AspectRatio
   isCreative: boolean
   /** What the user typed, the locked strip on its last line. */
   brief: string
@@ -424,4 +428,53 @@ export interface StillPrompterPayload {
   request: Record<string, unknown> | null
   provider: ClaudeProvider | null
   labeledImages: LabeledImage[]
+}
+
+/** What MMA step 4 sends both image engines, whichever lane renders. */
+interface StillGenerateInputBase {
+  model: string
+  /** Step 3's prompt with the sparkle suppression line appended. */
+  prompt: string
+  /** The CDN URLs of the pictures step 1 kept, in the order step 3 sent them. */
+  image_input: string[]
+  aspect_ratio: AspectRatio
+  output_format: 'png'
+}
+
+/** `mg_payload` of MMA step 4 on the Niche lane (`nanobanana_generate`). */
+export interface NanoBananaPayload {
+  error: string | null
+  input: StillGenerateInputBase & {
+    provider: 'gemini'
+    resolution: '4K'
+    image_search: false
+    google_search: false
+    response_modalities: ['IMAGE']
+  }
+  /** The generated picture on R2. */
+  output: string | null
+  timing: StepTiming
+  provider: { gemini: { model: string } }
+}
+
+/** `mg_payload` of MMA step 4 on the Creative lane (`gpt_image_2_generate`). */
+export interface GptImagePayload {
+  error: string | null
+  input: StillGenerateInputBase & {
+    /** `WIDTHxHEIGHT`, sized for about 2K. */
+    size: string
+    quality: 'max'
+    provider: 'openai'
+    background: 'auto'
+    moderation: 'low'
+  }
+  output: string | null
+  timing: StepTiming
+  provider: { openai: { size: string; model: string; quality: string; usage: Record<string, unknown> | null } }
+}
+
+/** A picture as bytes: an input read off the CDN for an image engine, or the picture an engine generated. */
+export interface ImageFile {
+  bytes: Buffer
+  contentType: string
 }

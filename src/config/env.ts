@@ -15,6 +15,8 @@ export const env = z
     SHOPIFY_ADMIN_TOKEN: z.string().min(1),
     SHOPIFY_API_VERSION: z.string().min(1),
     ANTHROPIC_API_KEY: z.string().min(1),
+    GEMINI_API_KEY: z.string().min(1),
+    OPENAI_API_KEY: z.string().min(1),
     R2_ACCOUNT_ID: z.string().min(1),
     R2_ACCESS_KEY_ID: z.string().min(1),
     R2_SECRET_ACCESS_KEY: z.string().min(1),

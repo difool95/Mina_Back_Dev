@@ -11,6 +11,7 @@ const assetUrl = z.string().startsWith(`${env.R2_PUBLIC_BASE_URL}/`)
 const stillBody = z.object({
   studioSessionId: z.uuid(),
   platform: z.enum(['tiktok', 'instagram-post', 'print', 'square']),
+  aspectRatio: z.enum(['9:16', '16:9', '3:4', '4:3', '2:3', '3:2', '1:1']),
   isCreative: z.boolean(),
   brief: z.string(),
   uploads: z.array(

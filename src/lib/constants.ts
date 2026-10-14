@@ -34,6 +34,25 @@ export const STILL_PROMPTER = {
   effort: 'high',
 } as const
 
+/** MMA step 4 on the Niche lane: NanoBanana Pro, rendering in 4K. */
+export const NANOBANANA = {
+  model: 'gemini-3-pro-image-preview',
+  resolution: '4K',
+} as const
+
+/** MMA step 4 on the Creative lane: GPT Image, at about 2K. */
+export const GPT_IMAGE = {
+  model: 'gpt-image-2.5-flare',
+  quality: 'max',
+  background: 'auto',
+  moderation: 'low',
+  /** Its "2K": as many pixels as 1536×1536, so the long side of a 9:16 picture is 2048. */
+  pixelBudget: 1536 * 1536,
+} as const
+
+/** The R2 folder MMA's generated stills go in. */
+export const R2_STILLS_PREFIX = 'mma/still'
+
 /** How every MMA call caches its prompt, stored beside the request. The token counts come from the response. */
 export const MMA_PROMPT_CACHE = {
   ttl: '5m',

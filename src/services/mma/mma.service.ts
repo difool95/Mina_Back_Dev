@@ -7,6 +7,7 @@ import { logMmaError } from './mmaErrorLogger.service.js'
 import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
 import { runKnowledgeFiles } from './mmaStep2/mmaKnowledgeFiles.service.js'
 import { runStillPrompter } from './mmaStep3/mmaStillPrompter.service.js'
+import { runGptImage, runNanoBanana } from './mmaStep4/mmaStillGenerate.service.js'
 import { supabase } from '../../services/thirdPartyClients/supabase.client.js'
 
 /** The `mma_step` row holding one step's `mg_payload`, under its generation. */
@@ -62,7 +63,15 @@ async function runStillPipeline(passId: string, generationId: string, request: S
 
   const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
-  if (prompt.error) return refundMmaCharge(passId, generationId)
+  if (!prompt.output) return refundMmaCharge(passId, generationId)
+
+  // The pictures step 3 sent Claude are the ones the image engine works from.
+  const images = prompt.labeledImages.map((image) => image.url)
+  const still = request.isCreative
+    ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio)
+    : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio)
+  await insertStep(passId, generationId, 4, request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate', still)
+  if (still.error) return refundMmaCharge(passId, generationId)
 }
 
 /**
@@ -76,7 +85,7 @@ async function runStillPipeline(passId: string, generationId: string, request: S
  * - the `generation` row and its MMA step 1, both skeletons the pipeline fills in;
  * - the `credit_transaction` charging for it, with the balance on `mega_customers`.
  *
- * Then starts the MMA steps: step 1 fills its row in, steps 2 and 3 add theirs.
+ * Then starts the MMA steps: step 1 fills its row in, steps 2, 3 and 4 add theirs.
  */
 export async function startStillGeneration(
   userId: string,
