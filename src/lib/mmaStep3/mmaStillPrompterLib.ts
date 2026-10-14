@@ -174,7 +174,7 @@ const PERSON_RECAST_CONTRACT =
 
 /** Put in front of the prompt of a scene edit, so the image model edits the base image rather than redrawing it. */
 const SCENE_EDIT_LOCK =
-  "SCENE EDIT LOCK — HIGHEST PRIORITY: This is an edit of the attached base image, not a new image. Change ONLY the subject or region named in the user's brief. Every other pixel stays exactly as it already is. Do not restate or re-describe anything you are keeping — the base image already contains it and you can see it, so naming it can only overwrite it. Add no light of any kind: no key, fill, bounce, rim, glow or studio light, and never infer or name a light direction. Inserted elements take the illumination that is already in the image; never import a reference image's lighting or shadows."
+  "SCENE EDIT LOCK — HIGHEST PRIORITY:"
 
 const KNOWLEDGE_FILE_NOTE =
   "Apply the practices below wherever they fit this job. They refine — never override — the user's explicit instructions."
