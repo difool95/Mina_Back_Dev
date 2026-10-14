@@ -50,6 +50,9 @@ export const GPT_IMAGE = {
   pixelBudget: 1536 * 1536,
 } as const
 
+/** Writes a generation's search text (mg_meta.seo) from step 3's prompt. */
+export const SEO_WRITER = { model: 'gpt-4o-mini' } as const
+
 /** The R2 folder MMA's generated stills go in. */
 export const R2_STILLS_PREFIX = 'mma/still'
 

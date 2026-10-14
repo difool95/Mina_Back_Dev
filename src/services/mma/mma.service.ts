@@ -4,6 +4,7 @@ import { STILL_GENERATION_COST } from '../../lib/constants.js'
 import type { StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
 import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
 import { logMmaError } from './mmaErrorLogger.service.js'
+import { writeSeo } from './mmaSeo.service.js'
 import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
 import { runKnowledgeFiles } from './mmaStep2/mmaKnowledgeFiles.service.js'
 import { runStillPrompter } from './mmaStep3/mmaStillPrompter.service.js'
@@ -84,12 +85,16 @@ async function runStillPipeline(passId: string, generationId: string, request: S
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
   if (!prompt.output) return failGeneration(passId, generationId, 'gpt_still_one_shot_failed', prompt.error ?? '')
 
+  // Written before the picture exists, from Claude's own prompt (no lock, no "Avoid:" list),
+  // so step 4 can write it into the file before the upload.
+  const seo = await writeSeo(passId, generationId, prompt.output.debug.clean_prompt, request)
+
   // The pictures step 3 sent Claude are the ones the image engine works from.
   const images = prompt.labeledImages.map((image) => image.url)
   const stepType = request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate'
-  const still = request.isCreative
-    ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio)
-    : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio)
+  const { payload: still, provenance } = request.isCreative
+    ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio, seo)
+    : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio, seo)
   await insertStep(passId, generationId, 4, stepType, still)
   if (!still.output) return failGeneration(passId, generationId, `${stepType}_failed`, still.error ?? '')
 
@@ -100,6 +105,7 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     mg_mma_status: 'done',
     mg_prompt: prompt.output.clean_prompt,
     mg_output_url: still.output,
+    mg_meta: { seo, provenance },
   }).catch(logMmaError)
 }
 

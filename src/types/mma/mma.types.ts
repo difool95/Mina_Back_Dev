@@ -478,3 +478,52 @@ export interface ImageFile {
   bytes: Buffer
   contentType: string
 }
+//THIS IS THE RETURNED SENTENCE AND KEYWORDS FROM THE SEO READER USING GPT-4O-MINI. IT IS USED TO BUILD THE MmaSeo OBJECT.
+export interface SeoReading {
+  sentence: string
+  keywords: string[]
+}
+
+/** `mg_meta.seo` of a generation: its search text, Mina's credit, and who made it. */
+export interface MmaSeo {
+  alt: string
+  description: string
+  keywords: string[]
+  source: string
+  generator: 'Mina'
+  /** `vision` when gpt-4o-mini wrote the sentence, `prompt` when it came from the cleaned prompt instead. */
+  decidedBy: 'vision' | 'prompt' | 'template'
+  trace: {
+    ratio: AspectRatio
+    medium: 'image'
+    source: string
+    account: string
+    platform: MmaPlatform
+    site_url: string
+    generator: 'Mina'
+    brand_line: string
+    attribution: string
+    ai_generated: true
+    duration_sec: null
+    generation_id: string
+    digital_source_type: 'trainedAlgorithmicMedia'
+  }
+  schema: {
+    '@type': 'ImageObject'
+    creator: { url: string; name: 'Mina'; '@type': 'Organization' }
+    '@context': 'https://schema.org'
+    keywords: string
+    creditText: string
+    description: string
+    copyrightNotice: string
+    acquireLicensePage: string
+  }
+}
+
+/** `mg_meta.provenance`: whether the SEO and Mina's credit were written into the picture before it went to R2. */
+export interface MmaProvenance {
+  url: string
+  reason: string
+  embedded: boolean
+  attempted_at: string
+}
