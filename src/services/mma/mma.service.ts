@@ -41,10 +41,30 @@ async function insertStep(
   if (error) throw new Error(error.message)
 }
 
+/** Updates the generation row the steps belong to. */
+async function updateGeneration(generationId: string, fields: object) {
+  const { error } = await supabase
+    .from('mega_generations')
+    .update({ ...fields, mg_updated_at: new Date().toISOString() })
+    .eq('mg_id', `generation:${generationId}`)
+
+  if (error) throw new Error(error.message)
+}
+
+/**
+ * Gives the customer their matcha back, then marks the generation as failed
+ * with why in `mg_error`. The refund goes first: it is what the customer
+ * cannot do without.
+ */
+async function failGeneration(passId: string, generationId: string, code: string, message: string) {
+  await refundMmaCharge(passId, generationId)
+  await updateGeneration(generationId, { mg_status: 'error', mg_mma_status: 'error', mg_error: { code, message } })
+}
+
 /**
  * The MMA steps of a still, each fed by the one before. Nobody waits on them:
  * a step that fails says why in its payload's `error`, the steps after it do
- * not run, and the customer gets their matcha back.
+ * not run, and the generation fails with that step's code and message.
  */
 async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest) {
   const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
@@ -55,23 +75,30 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     .eq('mg_id', `mma_step:${generationId}:1`)
 
   if (error) throw new Error(error.message)
-    //If the first step fails, we refund the charge and do not proceed to the next steps.
-  if (!assets.output) return refundMmaCharge(passId, generationId)
+  if (!assets.output) return failGeneration(passId, generationId, 'create_asset_intelligence_failed', assets.error ?? '')
 
   const knowledge = runKnowledgeFiles(request.isCreative ? 'creative' : 'niche', assets.output)
   await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
 
   const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
-  if (!prompt.output) return refundMmaCharge(passId, generationId)
+  if (!prompt.output) return failGeneration(passId, generationId, 'gpt_still_one_shot_failed', prompt.error ?? '')
 
   // The pictures step 3 sent Claude are the ones the image engine works from.
   const images = prompt.labeledImages.map((image) => image.url)
+  const stepType = request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate'
   const still = request.isCreative
     ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio)
     : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio)
-  await insertStep(passId, generationId, 4, request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate', still)
-  if (still.error) return refundMmaCharge(passId, generationId)
+  await insertStep(passId, generationId, 4, stepType, still)
+  if (!still.output) return failGeneration(passId, generationId, `${stepType}_failed`, still.error ?? '')
+
+  await updateGeneration(generationId, {
+    mg_status: 'done',
+    mg_mma_status: 'done',
+    mg_prompt: prompt.output.clean_prompt,
+    mg_output_url: still.output,
+  })
 }
 
 /**
@@ -193,12 +220,12 @@ export async function startStillGeneration(
 
   if (updateError) throw new Error(updateError.message)
 
-//This line is for starting the MMA steps asynchronously: Create Asset Intelligence, then the knowledge files, then the still prompter.
-//Any error thrown along the way (a row that could not be written…) is logged, and the matcha is refunded.
+//This line is for starting the MMA steps asynchronously: Create Asset Intelligence, the knowledge files, the still prompter, then the image engine.
+//Any error thrown along the way (a row that could not be written…) is logged, the matcha is refunded and the generation marked as failed.
   runStillPipeline(passId, generationId, request)
     .catch((error) => {
       logMmaError(error)
-      return refundMmaCharge(passId, generationId)
+      return failGeneration(passId, generationId, 'mma_pipeline_failed', (error as Error).message)
     })
     .catch(logMmaError)
 
