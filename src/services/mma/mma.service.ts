@@ -93,12 +93,14 @@ async function runStillPipeline(passId: string, generationId: string, request: S
   await insertStep(passId, generationId, 4, stepType, still)
   if (!still.output) return failGeneration(passId, generationId, `${stepType}_failed`, still.error ?? '')
 
+  //The picture exists by now, so a failed update here is only logged: no refund, and the generation is not marked as failed.
+  //it's catched by logMmaError so that it doesn't reach the top level and trigger a refund, since the picture is already stored and the generation is done.
   await updateGeneration(generationId, {
     mg_status: 'done',
     mg_mma_status: 'done',
     mg_prompt: prompt.output.clean_prompt,
     mg_output_url: still.output,
-  })
+  }).catch(logMmaError)
 }
 
 /**
