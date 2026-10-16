@@ -177,6 +177,8 @@ export const CREATE_ASSET_PLAN_TOOL: Anthropic.Tool = {
   name: 'create_asset_plan',
   description:
     'Emit the create_asset_plan output as structured JSON. This is the only way to respond — do not answer with prose.',
+  // Without it the schema is only a suggestion: Claude once answered without `items`, and planOutput broke on it.
+  strict: true,
   input_schema: {
     type: 'object',
     required: [
