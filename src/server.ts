@@ -1,6 +1,7 @@
 import { createApp } from './app.js'
 import { env } from './config/env.js'
 import { scheduleAutoRefill } from './jobs/autoRefill.job.js'
+import { scheduleExchangeRate, scheduleGenerationsCount } from './jobs/costRates.job.js'
 import { scheduleCreditExpiry } from './jobs/credits.job.js'
 
 createApp().listen(env.PORT, () => {
@@ -10,3 +11,5 @@ createApp().listen(env.PORT, () => {
 // Here rather than in app.ts, so importing the app still starts no timers.
 scheduleCreditExpiry()
 scheduleAutoRefill()
+scheduleExchangeRate()
+scheduleGenerationsCount()

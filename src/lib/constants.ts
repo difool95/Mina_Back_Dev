@@ -53,6 +53,47 @@ export const GPT_IMAGE = {
 /** Writes a generation's search text (mg_meta.seo) from step 3's prompt. */
 export const SEO_WRITER = { model: 'gpt-4o-mini' } as const
 
+// Prices in USD per million tokens.Checked on 2026-10-16 against each provider's pricing page.
+/** Claude: cache writes are the 5-minute kind (1.25× input), cache reads 0.1× input. */
+export const CLAUDE_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
+  'claude-opus-5-5': { input: 4, output: 20, cacheWrite: 5, cacheRead: 0.2 },
+  'claude-sonnet-5': { input: 2, output: 10, cacheWrite: 2.5, cacheRead: 0.2 },
+}
+
+export const OPENAI_CHAT_PRICES: Record<string, { input: number; cachedInput: number; output: number }> = {
+  'gpt-4o-mini': { input: 0.15, cachedInput: 0.075, output: 0.6 },
+}
+
+/** GPT Image never outputs text, so only its image output is billed. */
+export const GPT_IMAGE_PRICES: Record<string, { textInput: number; imageInput: number; imageOutput: number }> = {
+  'gpt-image-2.5-flare': { textInput: 5, imageInput: 8, imageOutput: 30 },
+}
+
+/** NanoBanana Pro: a 4K picture is 2,000 output tokens, so $0.24 of image output. Thinking bills as text output. */
+export const GEMINI_IMAGE_PRICES: Record<string, { input: number; textOutput: number; imageOutput: number }> = {
+  'gemini-3-pro-image-preview': { input: 2, textOutput: 12, imageOutput: 120 },
+}
+
+/** What `mg_cost_data` is computed with, besides the per-token prices. */
+export const MMA_COSTS = {
+  schemaVersion: 'mma-cost-v3-2026-07-24',
+  //This is the fixed monthly cost of all MINA External third parties, in USD, we change this value manually.
+  fixedMonthlyTotalUsd: 2350,
+  // The default number of generations per month, used until the cost-rates job has read last month's count, or when it fails.
+  defaultGenerationsPerMonth: 1000,
+  // The default exchange rate, used until the exchange-rate job has read today's rate, or when it fails.
+  defaultUsdPerGbp: 1.27,
+} as const
+
+//This is the hour in dubai where the exchange rate job runs, it is set to 20:00 Dubai time, which is 16:00 UTC.
+export const EXCHANGE_RATE_HOUR = 20
+
+//This is the hour in dubai where the generations count job runs, it is set to 8:00 Dubai time, which is 4:00 UTC.
+export const GENERATIONS_COUNT_HOUR = 8
+
+//This is the endpoint of the API that returns the current exchange rate of GBP to USD, it is used by the exchange rate job to get the current exchange rate.
+export const EXCHANGE_RATES_URL = 'https://open.er-api.com/v6/latest/GBP'
+
 /** The R2 folder MMA's generated stills go in. */
 export const R2_STILLS_PREFIX = 'mma/still'
 

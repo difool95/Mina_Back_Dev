@@ -1,11 +1,11 @@
 import { env } from '../../config/env.js'
-import type { GptImagePayload, ImageFile } from '../../types/mma/mma.types.js'
+import type { GptImagePayload, GptImageUsage, ImageFile, OpenAiChatUsage } from '../../types/mma/mma.types.js'
 
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images'
 
 interface OpenAiImageResponse {
   data?: { b64_json?: string }[]
-  usage?: Record<string, unknown>
+  usage?: GptImageUsage
   error?: { message: string }
 }
 
@@ -56,8 +56,8 @@ export async function openAiImage(input: GptImagePayload['input'], images: Image
   return { image, usage: body.usage ?? null }
 }
 
-/** Asks an OpenAI chat model for a JSON object, and returns it parsed. */
-export async function openAiJson(model: string, system: string, user: string): Promise<unknown> {
+/** Asks an OpenAI chat model for a JSON object, and returns it parsed with the tokens the call spent. */
+export async function openAiJson(model: string, system: string, user: string) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
@@ -71,8 +71,15 @@ export async function openAiJson(model: string, system: string, user: string): P
     }),
   })
 
-  const body = (await response.json()) as { choices?: { message?: { content?: string } }[]; error?: { message: string } }
+  const body = (await response.json()) as {
+    choices?: { message?: { content?: string } }[]
+    usage?: OpenAiChatUsage
+    error?: { message: string }
+  }
   if (!response.ok) throw new Error(`OpenAI ${response.status}: ${body.error?.message ?? 'no message'}`)
 
-  return JSON.parse(body.choices?.[0]?.message?.content ?? '{}')
+  return {
+    answer: JSON.parse(body.choices?.[0]?.message?.content ?? '{}') as unknown,
+    usage: body.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
+  }
 }

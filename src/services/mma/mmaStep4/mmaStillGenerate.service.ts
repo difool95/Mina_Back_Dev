@@ -11,6 +11,7 @@ import type {
   ImageFile,
   MmaProvenance,
   MmaSeo,
+  MmaSpend,
   NanoBananaPayload,
 } from '../../../types/mma/mma.types.js'
 import { putObject } from '../../r2.service.js'
@@ -60,9 +61,9 @@ async function storeStill({ bytes, contentType }: ImageFile, seo: MmaSeo) {
  * MMA step 4 on the Niche lane: NanoBanana Pro renders step 3's prompt in 4K,
  * from the pictures step 1 kept, and the result goes to R2, its SEO written in.
  *
- * Returns the step's `mg_payload`, and how the metadata went into the file. A
- * failure is written to the payload's `error` rather than thrown, and leaves
- * `output` null.
+ * Returns the step's `mg_payload`, how the metadata went into the file, and
+ * the tokens the engine spent (even when the step failed after it). A failure
+ * is written to the payload's `error` rather than thrown, and leaves `output` null.
  */
 export async function runNanoBanana(cleanPrompt: string, imageUrls: string[], ratio: AspectRatio, seo: MmaSeo) {
   const startedAt = new Date()
@@ -74,9 +75,11 @@ export async function runNanoBanana(cleanPrompt: string, imageUrls: string[], ra
     provider: { gemini: { model: input.model } },
   }
   let provenance: MmaProvenance | null = null
+  let spend: MmaSpend['image'] = null
 
   try {
-    const image = await geminiImage(input, await Promise.all(imageUrls.map(readImage)))
+    const { image, usage } = await geminiImage(input, await Promise.all(imageUrls.map(readImage)))
+    spend = { engine: 'nanobanana', model: input.model, usage }
     const stored = await storeStill(image, seo)
     payload.output = stored.url
     provenance = stored.provenance
@@ -85,16 +88,16 @@ export async function runNanoBanana(cleanPrompt: string, imageUrls: string[], ra
     logMmaError(error)
   }
 
-  return { payload: { ...payload, timing: stepTiming(startedAt) } satisfies NanoBananaPayload, provenance }
+  return { payload: { ...payload, timing: stepTiming(startedAt) } satisfies NanoBananaPayload, provenance, spend }
 }
 
 /**
  * MMA step 4 on the Creative lane: GPT Image renders step 3's prompt at about
  * 2K, from the pictures step 1 kept, and the result goes to R2, its SEO written in.
  *
- * Returns the step's `mg_payload`, and how the metadata went into the file. A
- * failure is written to the payload's `error` rather than thrown, and leaves
- * `output` null.
+ * Returns the step's `mg_payload`, how the metadata went into the file, and
+ * the tokens the engine spent (even when the step failed after it). A failure
+ * is written to the payload's `error` rather than thrown, and leaves `output` null.
  */
 export async function runGptImage(cleanPrompt: string, imageUrls: string[], ratio: AspectRatio, seo: MmaSeo) {
   const startedAt = new Date()
@@ -106,10 +109,12 @@ export async function runGptImage(cleanPrompt: string, imageUrls: string[], rati
     provider: { openai: { size: input.size, model: input.model, quality: input.quality, usage: null } },
   }
   let provenance: MmaProvenance | null = null
+  let spend: MmaSpend['image'] = null
 
   try {
     const { image, usage } = await openAiImage(input, await Promise.all(imageUrls.map(readImage)))
     payload.provider.openai.usage = usage
+    if (usage) spend = { engine: 'openai', model: input.model, size: input.size, usage }
     const stored = await storeStill(image, seo)
     payload.output = stored.url
     provenance = stored.provenance
@@ -118,5 +123,5 @@ export async function runGptImage(cleanPrompt: string, imageUrls: string[], rati
     logMmaError(error)
   }
 
-  return { payload: { ...payload, timing: stepTiming(startedAt) } satisfies GptImagePayload, provenance }
+  return { payload: { ...payload, timing: stepTiming(startedAt) } satisfies GptImagePayload, provenance, spend }
 }

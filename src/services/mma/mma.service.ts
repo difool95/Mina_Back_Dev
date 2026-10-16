@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COST } from '../../lib/constants.js'
-import type { StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
+import { costData } from '../../lib/mmaCost/mmaCostLib.js'
+import type { MmaSpend, StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
 import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
+import { costRates } from './mmaCostRates.service.js'
 import { logMmaError } from './mmaErrorLogger.service.js'
 import { writeSeo } from './mmaSeo.service.js'
 import { runCreateAssetIntelligence } from './mmaStep1/mmaCreateAssets.service.js'
@@ -52,23 +54,45 @@ async function updateGeneration(generationId: string, fields: object) {
   if (error) throw new Error(error.message)
 }
 
+/** The lane a still renders on: Creative is GPT Image, Niche is NanoBanana. */
+const laneOf = (request: StillGenerationRequest) => (request.isCreative ? 'creative' : 'niche')
+
 /**
  * Gives the customer their matcha back, then marks the generation as failed
- * with why in `mg_error`. The refund goes first: it is what the customer
+ * with why in `mg_error`, and what the calls that did run cost, sold for
+ * nothing, in `mg_cost_data`. The refund goes first: it is what the customer
  * cannot do without.
  */
-async function failGeneration(passId: string, generationId: string, code: string, message: string) {
+async function failGeneration(
+  passId: string,
+  generationId: string,
+  request: StillGenerationRequest,
+  spend: MmaSpend,
+  code: string,
+  message: string,
+) {
   await refundMmaCharge(passId, generationId)
-  await updateGeneration(generationId, { mg_status: 'error', mg_mma_status: 'error', mg_error: { code, message } })
+  await updateGeneration(generationId, {
+    mg_status: 'error',
+    mg_mma_status: 'error',
+    mg_error: { code, message },
+    mg_cost_data: costData(laneOf(request), spend, false, costRates()),
+  })
 }
 
 /**
  * The MMA steps of a still, each fed by the one before. Nobody waits on them:
  * a step that fails says why in its payload's `error`, the steps after it do
  * not run, and the generation fails with that step's code and message.
+ * Every paid call is added to `spend` as it returns, so `mg_cost_data` can be
+ * priced whether the generation ends done or failed.
  */
-async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest) {
+async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest, spend: MmaSpend) {
+  const fail = (code: string, message: string | null) =>
+    failGeneration(passId, generationId, request, spend, code, message ?? '')
+
   const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
+  if (assets.usage) spend.claude.push(assets.usage)
 
   const { error } = await supabase
     .from('mega_generations')
@@ -76,27 +100,31 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     .eq('mg_id', `mma_step:${generationId}:1`)
 
   if (error) throw new Error(error.message)
-  if (!assets.output) return failGeneration(passId, generationId, 'create_asset_intelligence_failed', assets.error ?? '')
+  if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
 
-  const knowledge = runKnowledgeFiles(request.isCreative ? 'creative' : 'niche', assets.output)
+  const knowledge = runKnowledgeFiles(laneOf(request), assets.output)
   await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
 
   const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
+  if (prompt.usage) spend.claude.push(prompt.usage)
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
-  if (!prompt.output) return failGeneration(passId, generationId, 'gpt_still_one_shot_failed', prompt.error ?? '')
+  if (!prompt.output) return fail('gpt_still_one_shot_failed', prompt.error)
 
   // Written before the picture exists, from Claude's own prompt (no lock, no "Avoid:" list),
   // so step 4 can write it into the file before the upload.
-  const seo = await writeSeo(passId, generationId, prompt.output.debug.clean_prompt, request)
+  const { seo, spend: seoSpend } = await writeSeo(passId, generationId, prompt.output.debug.clean_prompt, request)
+  spend.seo = seoSpend
 
   // The pictures step 3 sent Claude are the ones the image engine works from.
   const images = prompt.labeledImages.map((image) => image.url)
   const stepType = request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate'
-  const { payload: still, provenance } = request.isCreative
+  const generated = request.isCreative
     ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio, seo)
     : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio, seo)
+  spend.image = generated.spend
+  const still = generated.payload
   await insertStep(passId, generationId, 4, stepType, still)
-  if (!still.output) return failGeneration(passId, generationId, `${stepType}_failed`, still.error ?? '')
+  if (!still.output) return fail(`${stepType}_failed`, still.error)
 
   //The picture exists by now, so a failed update here is only logged: no refund, and the generation is not marked as failed.
   //it's catched by logMmaError so that it doesn't reach the top level and trigger a refund, since the picture is already stored and the generation is done.
@@ -105,7 +133,8 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     mg_mma_status: 'done',
     mg_prompt: prompt.output.clean_prompt,
     mg_output_url: still.output,
-    mg_meta: { seo, provenance },
+    mg_meta: { seo, provenance: generated.provenance },
+    mg_cost_data: costData(laneOf(request), spend, true, costRates()),
   }).catch(logMmaError)
 }
 
@@ -230,10 +259,12 @@ export async function startStillGeneration(
 
 //This line is for starting the MMA steps asynchronously: Create Asset Intelligence, the knowledge files, the still prompter, then the image engine.
 //Any error thrown along the way (a row that could not be written…) is logged, the matcha is refunded and the generation marked as failed.
-  runStillPipeline(passId, generationId, request)
+//The spend object is passed along to collect the usage of every paid call, so the generation's mg_cost_data can be calculated whether it ends done or failed.
+  const spend: MmaSpend = { claude: [], seo: null, image: null }
+  runStillPipeline(passId, generationId, request, spend)
     .catch((error) => {
       logMmaError(error)
-      return failGeneration(passId, generationId, 'mma_pipeline_failed', (error as Error).message)
+      return failGeneration(passId, generationId, request, spend, 'mma_pipeline_failed', (error as Error).message)
     })
     .catch(logMmaError)
 

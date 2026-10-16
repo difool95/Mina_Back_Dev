@@ -470,7 +470,7 @@ export interface GptImagePayload {
   }
   output: string | null
   timing: StepTiming
-  provider: { openai: { size: string; model: string; quality: string; usage: Record<string, unknown> | null } }
+  provider: { openai: { size: string; model: string; quality: string; usage: GptImageUsage | null } }
 }
 
 /** A picture as bytes: an input read off the CDN for an image engine, or the picture an engine generated. */
@@ -526,4 +526,84 @@ export interface MmaProvenance {
   reason: string
   embedded: boolean
   attempted_at: string
+}
+
+/** The tokens one OpenAI chat call spent (the SEO writer's). */
+export interface OpenAiChatUsage {
+  prompt_tokens: number
+  completion_tokens: number
+  prompt_tokens_details?: { cached_tokens?: number }
+}
+
+/** The tokens one GPT Image call spent, as OpenAI reports them. */
+export interface GptImageUsage {
+  input_tokens: number
+  output_tokens: number
+  total_tokens?: number
+  input_tokens_details?: { text_tokens?: number; image_tokens?: number }
+  output_tokens_details?: { text_tokens?: number; image_tokens?: number }
+}
+
+/** The tokens one Gemini call spent, from its `usageMetadata`. */
+export interface GeminiUsage {
+  promptTokenCount?: number
+  candidatesTokenCount?: number
+  thoughtsTokenCount?: number
+  candidatesTokensDetails?: { modality: string; tokenCount: number }[]
+}
+
+/** Every paid call a generation made so far, filled in as the steps run: what `mg_cost_data` is priced from. */
+export interface MmaSpend {
+  //It has the claude Usage for the step 1 and step 3.
+  claude: ClaudeUsage[]
+  //It has the seo Usage when we created the field "mg_meta" for the generation.
+  seo: { model: string; usage: OpenAiChatUsage } | null
+  //It has the image Usage when we created the picture of the generation, it can be from nanobanana or openai.
+  image:
+    | { engine: 'nanobanana'; model: string; usage: GeminiUsage }
+    | { engine: 'openai'; model: string; size: string; usage: GptImageUsage }
+    | null
+}
+
+/** Today's dollar rate and last month's volume, refreshed by the cost-rates job. */
+export interface CostRates {
+  usdPerGbp: number
+  generationsPerMonth: number
+}
+
+/** One paid service of a generation, in `mg_cost_data.providers`. */
+export interface CostProvider {
+  usd: number
+  label: string
+  detail: string
+  provider: string
+}
+
+/** `mg_cost_data` of a generation: what it cost, what it sold for, and the margins. */
+export interface MmaCostData {
+  provider: 'nanobanana' | 'openai'
+  fallbacks: string[]
+  providers: CostProvider[]
+  /** Null when nothing was sold: the matcha was refunded. */
+  margin_pct: number | null
+  markup_pct: number | null
+  profit_usd: number
+  api_cost_usd: number
+  mma_cost_usd: number
+  model_cost_usd: number
+  sell_price_usd: number
+  total_cost_usd: number
+  margin_bulk_pct: number | null
+  markup_bulk_pct: number | null
+  matchas_charged: number
+  profit_bulk_usd: number
+  fixed_overhead_usd: number
+  cost_schema_version: string
+  sell_price_bulk_usd: number
+  matcha_unit_price_usd: number
+  profit_after_fixed_usd: number
+  fixed_monthly_total_usd: number
+  est_generations_per_month: number
+  matcha_unit_price_bulk_usd: number
+  profit_after_fixed_bulk_usd: number
 }
