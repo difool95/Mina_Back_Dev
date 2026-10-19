@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COST } from '../../lib/constants.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
-import type { MmaSpend, StepTiming, StillGenerationRequest, StillGenerationResult } from '../../types/mma/mma.types.js'
+import type {
+  MmaSpend,
+  MmaStatus,
+  StepTiming,
+  StillGenerationRequest,
+  StillGenerationResult,
+} from '../../types/mma/mma.types.js'
 import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
 import { costRates } from './mmaCostRates.service.js'
 import { logMmaError } from './mmaErrorLogger.service.js'
@@ -54,6 +60,13 @@ async function updateGeneration(generationId: string, fields: object) {
   if (error) throw new Error(error.message)
 }
 
+/**
+ * Marks the step the pipeline is starting, for the studio to choose what Mina
+ * types meanwhile. Only logged when it fails: the picture matters more.
+ */
+const markStatus = (generationId: string, status: MmaStatus) =>
+  updateGeneration(generationId, { mg_mma_status: status }).catch(logMmaError)
+
 /** The lane a still renders on: Creative is GPT Image, Niche is NanoBanana. */
 const laneOf = (request: StillGenerationRequest) => (request.isCreative ? 'creative' : 'niche')
 
@@ -91,6 +104,7 @@ async function runStillPipeline(passId: string, generationId: string, request: S
   const fail = (code: string, message: string | null) =>
     failGeneration(passId, generationId, request, spend, code, message ?? '')
 
+  await markStatus(generationId, 'scanning')
   const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
   if (assets.usage) spend.claude.push(assets.usage)
 
@@ -102,6 +116,7 @@ async function runStillPipeline(passId: string, generationId: string, request: S
   if (error) throw new Error(error.message)
   if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
 
+  await markStatus(generationId, 'prompting')
   const knowledge = runKnowledgeFiles(laneOf(request), assets.output)
   await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
 
@@ -109,6 +124,8 @@ async function runStillPipeline(passId: string, generationId: string, request: S
   if (prompt.usage) spend.claude.push(prompt.usage)
   await insertStep(passId, generationId, 3, 'gpt_still_one_shot', prompt)
   if (!prompt.output) return fail('gpt_still_one_shot_failed', prompt.error)
+
+  await markStatus(generationId, 'generating')
 
   // Written before the picture exists, from Claude's own prompt (no lock, no "Avoid:" list),
   // so step 4 can write it into the file before the upload.

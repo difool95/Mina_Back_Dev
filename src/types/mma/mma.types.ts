@@ -36,6 +36,12 @@ export interface StillGenerationResult {
   credits: number
 }
 
+/**
+ * A generation's `mg_mma_status`: the step its pipeline is on, which the studio
+ * polls to choose what Mina types meanwhile. Same as the frontend's.
+ */
+export type MmaStatus = 'progressing' | 'scanning' | 'prompting' | 'generating' | 'done' | 'error'
+
 /** How MMA names the pill a picture came in under; the product pill is `featured_asset`. */
 export type PillHint = 'scene' | 'logo' | 'featured_asset'
 
