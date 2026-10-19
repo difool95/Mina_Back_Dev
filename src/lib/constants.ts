@@ -38,6 +38,8 @@ export const STILL_PROMPTER = {
 export const NANOBANANA = {
   model: 'gemini-3-pro-image-preview',
   resolution: '4K',
+  /** Its name in `mg_mma_vars.meta.still_engine`. */
+  stillEngine: 'gemini_3_pro_image_preview',
 } as const
 
 /** MMA step 4 on the Creative lane: GPT Image, at about 2K. */
@@ -48,7 +50,13 @@ export const GPT_IMAGE = {
   moderation: 'low',
   /** Its "2K": as many pixels as 1536×1536, so the long side of a 9:16 picture is 2048. */
   pixelBudget: 1536 * 1536,
+  resolution: '2K',
+  /** Its name in `mg_mma_vars.meta.still_engine`. */
+  stillEngine: 'gpt_image_2.5_flare',
 } as const
+
+/** The `version` every `mg_mma_vars` carries. */
+export const MMA_VARS_VERSION = '2025-12-23'
 
 /** Writes a generation's search text (mg_meta.seo) from step 3's prompt. */
 export const SEO_WRITER = { model: 'gpt-4o-mini' } as const

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COST } from '../../lib/constants.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
+import { stillMmaVars } from '../../lib/mmaVars/mmaVarsLib.js'
 import type {
   MmaSpend,
   MmaStatus,
@@ -100,7 +101,13 @@ async function failGeneration(
  * Every paid call is added to `spend` as it returns, so `mg_cost_data` can be
  * priced whether the generation ends done or failed.
  */
-async function runStillPipeline(passId: string, generationId: string, request: StillGenerationRequest, spend: MmaSpend) {
+async function runStillPipeline(
+  passId: string,
+  generationId: string,
+  imageSessionId: string,
+  request: StillGenerationRequest,
+  spend: MmaSpend,
+) {
   const fail = (code: string, message: string | null) =>
     failGeneration(passId, generationId, request, spend, code, message ?? '')
 
@@ -152,6 +159,16 @@ async function runStillPipeline(passId: string, generationId: string, request: S
     mg_output_url: still.output,
     mg_meta: { seo, provenance: generated.provenance },
     mg_cost_data: costData(laneOf(request), spend, true, costRates()),
+    mg_mma_vars: stillMmaVars({
+      passId,
+      generationId,
+      imageSessionId,
+      request,
+      assetPlan: assets.output,
+      knowledgeRoute: knowledge.payload.output.route,
+      cleanPrompt: prompt.output.clean_prompt,
+      outputUrl: still.output,
+    }),
   }).catch(logMmaError)
 }
 
@@ -278,7 +295,7 @@ export async function startStillGeneration(
 //Any error thrown along the way (a row that could not be written…) is logged, the matcha is refunded and the generation marked as failed.
 //The spend object is passed along to collect the usage of every paid call, so the generation's mg_cost_data can be calculated whether it ends done or failed.
   const spend: MmaSpend = { claude: [], seo: null, image: null }
-  runStillPipeline(passId, generationId, request, spend)
+  runStillPipeline(passId, generationId, imageSessionId, request, spend)
     .catch((error) => {
       logMmaError(error)
       return failGeneration(passId, generationId, request, spend, 'mma_pipeline_failed', (error as Error).message)

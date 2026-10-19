@@ -526,6 +526,22 @@ export interface MmaSeo {
   }
 }
 
+/** What a done still's `mg_mma_vars` is built from: the request, and what steps 1 to 4 handed on. */
+export interface StillVarsSource {
+  passId: string
+  generationId: string
+  imageSessionId: string
+  request: StillGenerationRequest
+  /** Step 1's asset plan. */
+  assetPlan: CreateAssetOutput
+  /** Step 2's receipt. */
+  knowledgeRoute: KnowledgeRoute
+  /** Step 3's prompt, the one step 4 rendered. */
+  cleanPrompt: string
+  /** Step 4's picture on R2. */
+  outputUrl: string
+}
+
 /** `mg_meta.provenance`: whether the SEO and Mina's credit were written into the picture before it went to R2. */
 export interface MmaProvenance {
   url: string
