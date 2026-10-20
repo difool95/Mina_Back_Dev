@@ -4,7 +4,12 @@ import { env } from '../../../config/env.js'
 import { R2_STILLS_PREFIX, UPLOAD_EXTENSIONS } from '../../../lib/constants.js'
 import { stepTiming } from '../../../lib/date.js'
 import { embedXmp, xmpPacket } from '../../../lib/mmaSeo/mmaSeoLib.js'
-import { gptImageInput, nanoBananaInput, stillPrompt } from '../../../lib/mmaStep4/mmaStillGenerateLib.js'
+import {
+  gptImageInput,
+  nanoBananaInput,
+  stillPrompt,
+  type GptImageEngine,
+} from '../../../lib/mmaStep4/mmaStillGenerateLib.js'
 import type {
   AspectRatio,
   GptImagePayload,
@@ -92,16 +97,23 @@ export async function runNanoBanana(cleanPrompt: string, imageUrls: string[], ra
 }
 
 /**
- * MMA step 4 on the Creative lane: GPT Image renders step 3's prompt at about
- * 2K, from the pictures step 1 kept, and the result goes to R2, its SEO written in.
+ * MMA step 4 on the Creative and Creative+ lanes: `engine` renders step 3's
+ * prompt (about 2K on Creative, 4K on Creative+), from the pictures step 1
+ * kept, and the result goes to R2, its SEO written in.
  *
  * Returns the step's `mg_payload`, how the metadata went into the file, and
  * the tokens the engine spent (even when the step failed after it). A failure
  * is written to the payload's `error` rather than thrown, and leaves `output` null.
  */
-export async function runGptImage(cleanPrompt: string, imageUrls: string[], ratio: AspectRatio, seo: MmaSeo) {
+export async function runGptImage(
+  cleanPrompt: string,
+  imageUrls: string[],
+  ratio: AspectRatio,
+  seo: MmaSeo,
+  engine: GptImageEngine,
+) {
   const startedAt = new Date()
-  const input = gptImageInput(stillPrompt(cleanPrompt), imageUrls, ratio)
+  const input = gptImageInput(stillPrompt(cleanPrompt), imageUrls, ratio, engine)
   const payload: Omit<GptImagePayload, 'timing'> = {
     error: null,
     input,

@@ -1,5 +1,5 @@
 import type { StillVarsSource } from '../../types/mma/mma.types.js'
-import { GPT_IMAGE, MMA_VARS_VERSION, NANOBANANA } from '../constants.js'
+import { MMA_VARS_VERSION, STILL_RENDERERS } from '../constants.js'
 
 /**
  * A done still's `mg_mma_vars`: the run's inputs, the steps' results and the
@@ -8,8 +8,8 @@ import { GPT_IMAGE, MMA_VARS_VERSION, NANOBANANA } from '../constants.js'
  */
 export function stillMmaVars(source: StillVarsSource) {
   const { request, assetPlan, outputUrl } = source
-  const engine = request.isCreative ? GPT_IMAGE : NANOBANANA
-  const lane = request.isCreative ? 'creative' : 'niche'
+  const { lane } = request
+  const engine = STILL_RENDERERS[lane]
   const resolution = engine.resolution
 
   return {
@@ -139,7 +139,7 @@ export function stillMmaVars(source: StillVarsSource) {
       seedream_image_url: null,
       // The example fills this one on a GPT Image run too: it is the still's slot, whichever engine rendered it.
       nanobanana_image_url: outputUrl,
-      gpt_image_2_image_url: request.isCreative ? outputUrl : null,
+      gpt_image_2_image_url: lane === 'niche' ? null : outputUrl,
       nanobanana2_image_url: null,
       seedream_prediction_id: null,
       nanobanana_prediction_id: null,

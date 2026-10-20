@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { LOT_LIFETIME_MONTHS, SIGNUP_BONUS, STILL_GENERATION_COST } from '../lib/constants.js'
+import { LOT_LIFETIME_MONTHS, SIGNUP_BONUS } from '../lib/constants.js'
 import { addMonths } from '../lib/date.js'
 import type { MmaPreferences } from '../types/customer.types.js'
 import type {
@@ -326,11 +326,12 @@ export async function addAutoRefillCredits(
 }
 
 /**
- * Gives back the matchas a Create generation was charged when its MMA cycle
- * fails, once per generation: the ledger's `mma_refund` row for it is what
- * stops a second refund. The refunded lot keeps the customer's current expiry.
+ * Gives back the `matchas` a Create generation was charged (what its lane
+ * costs) when its MMA cycle fails, once per generation: the ledger's
+ * `mma_refund` row for it is what stops a second refund. The refunded lot
+ * keeps the customer's current expiry.
  */
-export async function refundMmaCharge(passId: string, generationId: string) {
+export async function refundMmaCharge(passId: string, generationId: string, matchas: number) {
   const refId = `mma:${generationId}`
 
   const { data: customer, error: customerError } = await supabase
@@ -356,12 +357,12 @@ export async function refundMmaCharge(passId: string, generationId: string) {
 
   const at = new Date().toISOString()
   const creditsBefore = Number(customer.mg_credits ?? 0)
-  const creditsAfter = creditsBefore + STILL_GENERATION_COST
+  const creditsAfter = creditsBefore + matchas
   const lots = Array.isArray(customer.mg_credit_lots) ? (customer.mg_credit_lots as CreditLot[]) : []
 
   await recordTransaction({
     passId,
-    delta: STILL_GENERATION_COST,
+    delta: matchas,
     reason: 'mma_refund',
     refType: 'mma_refund',
     refId,
@@ -371,7 +372,7 @@ export async function refundMmaCharge(passId: string, generationId: string) {
   })
 
   const lot: CreditLot = {
-    amount: STILL_GENERATION_COST,
+    amount: matchas,
     ref_id: refId,
     ref_type: 'mma_refund',
     created_at: at,

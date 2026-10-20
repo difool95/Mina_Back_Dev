@@ -23,7 +23,7 @@ export interface StillGenerationRequest {
   studioSessionId: string
   platform: MmaPlatform
   aspectRatio: AspectRatio
-  isCreative: boolean
+  lane: StillLane
   /** What the user typed, the locked strip on its last line. */
   brief: string
   uploads: StudioUpload[]
@@ -194,8 +194,8 @@ export interface CreateAssetPayload {
   provider: ClaudeProvider | null
 }
 
-/** The studio's Create lane switch: Niche or Creative. */
-export type StillLane = 'niche' | 'creative'
+/** The studio's Create lane switch: Niche, Creative or Creative+. Same as the frontend's. */
+export type StillLane = 'niche' | 'creative' | 'creative_plus'
 
 /** One structured fact test in the knowledge router catalog. */
 export interface KnowledgeCondition {
@@ -463,11 +463,11 @@ export interface NanoBananaPayload {
   provider: { gemini: { model: string } }
 }
 
-/** `mg_payload` of MMA step 4 on the Creative lane (`gpt_image_2_generate`). */
+/** `mg_payload` of MMA step 4 on the Creative and Creative+ lanes (`gpt_image_2_generate`). */
 export interface GptImagePayload {
   error: string | null
   input: StillGenerateInputBase & {
-    /** `WIDTHxHEIGHT`, sized for about 2K. */
+    /** `WIDTHxHEIGHT`, sized for about 2K on Creative, 4K on Creative+. */
     size: string
     quality: 'max'
     provider: 'openai'

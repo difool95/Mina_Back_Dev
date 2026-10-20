@@ -16,7 +16,7 @@ import {
   MATCHA_PACKS,
   MMA_COSTS,
   OPENAI_CHAT_PRICES,
-  STILL_GENERATION_COST,
+  STILL_GENERATION_COSTS,
 } from '../constants.js'
 
 const PER_MILLION = 1_000_000
@@ -113,7 +113,7 @@ export function costData(lane: StillLane, spend: MmaSpend, isCharged: boolean, r
   const mmaCost = round(providers.filter((entry) => entry !== imageProvider).reduce((sum, entry) => sum + entry.usd, 0))
   const apiCost = round(modelCost + mmaCost)
 
-  const matchas = isCharged ? STILL_GENERATION_COST : 0
+  const matchas = isCharged ? STILL_GENERATION_COSTS[lane] : 0
   const unitPrice = round(MATCHA_GBP * rates.usdPerGbp)
   const bulkUnitPrice = round(MATCHA_BULK_GBP * rates.usdPerGbp)
   const sellPrice = round(unitPrice * matchas)
@@ -123,7 +123,7 @@ export function costData(lane: StillLane, spend: MmaSpend, isCharged: boolean, r
   const fixedOverhead = round(MMA_COSTS.fixedMonthlyTotalUsd / rates.generationsPerMonth)
 
   return {
-    provider: lane === 'creative' ? 'openai' : 'nanobanana',
+    provider: lane === 'niche' ? 'nanobanana' : 'openai',
     fallbacks: [],
     providers,
     margin_pct: ratio(profit, sellPrice),

@@ -1,7 +1,7 @@
 import type { StillLane } from '../types/mma/mma.types.js'
 
-/** What one Create (still image) generation costs, in matchas. */
-export const STILL_GENERATION_COST = 1
+/** What one Create (still image) generation costs, in matchas, on each lane. */
+export const STILL_GENERATION_COSTS: Record<StillLane, number> = { niche: 1, creative: 1, creative_plus: 2 }
 
 /** The largest picture the studio uploads, the same limit as its file picker. */
 export const UPLOAD_MAX_SIZE = '48mb'
@@ -55,6 +55,19 @@ export const GPT_IMAGE = {
   stillEngine: 'gpt_image_2.5_flare',
 } as const
 
+/** MMA step 4 on the Creative+ lane: GPT Image Sunburst, at about 4K. */
+export const GPT_IMAGE_PLUS = {
+  ...GPT_IMAGE,
+  model: 'gpt-image-2.5-sunburst',
+  /** Its "4K": as many pixels as 3072×3072, so the long side of a 9:16 picture is 4096. */
+  pixelBudget: 3072 * 3072,
+  resolution: '4K',
+  stillEngine: 'gpt_image_25_sunburst',
+} as const
+
+/** The image engine each Create lane renders with in step 4. */
+export const STILL_RENDERERS = { niche: NANOBANANA, creative: GPT_IMAGE, creative_plus: GPT_IMAGE_PLUS } as const
+
 /** The `version` every `mg_mma_vars` carries. */
 export const MMA_VARS_VERSION = '2025-12-23'
 
@@ -75,6 +88,8 @@ export const OPENAI_CHAT_PRICES: Record<string, { input: number; cachedInput: nu
 /** GPT Image never outputs text, so only its image output is billed. */
 export const GPT_IMAGE_PRICES: Record<string, { textInput: number; imageInput: number; imageOutput: number }> = {
   'gpt-image-2.5-flare': { textInput: 5, imageInput: 8, imageOutput: 30 },
+  // Not checked yet: flare's prices until sunburst's are known.
+  'gpt-image-2.5-sunburst': { textInput: 5, imageInput: 8, imageOutput: 30 },
 }
 
 /** NanoBanana Pro: a 4K picture is 2,000 output tokens, so $0.24 of image output. Thinking bills as text output. */
@@ -115,7 +130,11 @@ export const MMA_PROMPT_CACHE = {
 }
 
 /** The image engine each Create lane renders with, which decides the engine guide step 2 picks. */
-export const STILL_ENGINES: Record<StillLane, string> = { niche: 'nano_banana', creative: 'gpt_image' }
+export const STILL_ENGINES: Record<StillLane, string> = {
+  niche: 'nano_banana',
+  creative: 'gpt_image',
+  creative_plus: 'gpt_image',
+}
 
 /**
  * The knowledge guides and their router catalog, from the project root: `tsc`

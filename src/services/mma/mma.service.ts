@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { STILL_GENERATION_COST } from '../../lib/constants.js'
+import { STILL_GENERATION_COSTS, STILL_RENDERERS } from '../../lib/constants.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
 import { stillMmaVars } from '../../lib/mmaVars/mmaVarsLib.js'
 import type {
@@ -68,9 +68,6 @@ async function updateGeneration(generationId: string, fields: object) {
 const markStatus = (generationId: string, status: MmaStatus) =>
   updateGeneration(generationId, { mg_mma_status: status }).catch(logMmaError)
 
-/** The lane a still renders on: Creative is GPT Image, Niche is NanoBanana. */
-const laneOf = (request: StillGenerationRequest) => (request.isCreative ? 'creative' : 'niche')
-
 /**
  * Gives the customer their matcha back, then marks the generation as failed
  * with why in `mg_error`, and what the calls that did run cost, sold for
@@ -85,12 +82,12 @@ async function failGeneration(
   code: string,
   message: string,
 ) {
-  await refundMmaCharge(passId, generationId)
+  await refundMmaCharge(passId, generationId, STILL_GENERATION_COSTS[request.lane])
   await updateGeneration(generationId, {
     mg_status: 'error',
     mg_mma_status: 'error',
     mg_error: { code, message },
-    mg_cost_data: costData(laneOf(request), spend, false, costRates()),
+    mg_cost_data: costData(request.lane, spend, false, costRates()),
   })
 }
 
@@ -124,7 +121,7 @@ async function runStillPipeline(
   if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
 
   await markStatus(generationId, 'prompting')
-  const knowledge = runKnowledgeFiles(laneOf(request), assets.output)
+  const knowledge = runKnowledgeFiles(request.lane, assets.output)
   await insertStep(passId, generationId, 2, 'knowledge_files', knowledge.payload)
 
   const prompt = await runStillPrompter(request.brief, assets.output, knowledge.docs)
@@ -141,10 +138,12 @@ async function runStillPipeline(
 
   // The pictures step 3 sent Claude are the ones the image engine works from.
   const images = prompt.labeledImages.map((image) => image.url)
-  const stepType = request.isCreative ? 'gpt_image_2_generate' : 'nanobanana_generate'
-  const generated = request.isCreative
-    ? await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio, seo)
-    : await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio, seo)
+  const { lane } = request
+  const stepType = lane === 'niche' ? 'nanobanana_generate' : 'gpt_image_2_generate'
+  const generated =
+    lane === 'niche'
+      ? await runNanoBanana(prompt.output.clean_prompt, images, request.aspectRatio, seo)
+      : await runGptImage(prompt.output.clean_prompt, images, request.aspectRatio, seo, STILL_RENDERERS[lane])
   spend.image = generated.spend
   const still = generated.payload
   await insertStep(passId, generationId, 4, stepType, still)
@@ -158,7 +157,7 @@ async function runStillPipeline(
     mg_prompt: prompt.output.clean_prompt,
     mg_output_url: still.output,
     mg_meta: { seo, provenance: generated.provenance },
-    mg_cost_data: costData(laneOf(request), spend, true, costRates()),
+    mg_cost_data: costData(request.lane, spend, true, costRates()),
     mg_mma_vars: stillMmaVars({
       passId,
       generationId,
@@ -202,7 +201,8 @@ export async function startStillGeneration(
 
   // Checked before anything is written, so a refused generation leaves no rows behind.
   const creditsBefore = Number(customer.mg_credits ?? 0)
-  if (creditsBefore < STILL_GENERATION_COST) throw new Error('Not enough matcha')
+  const cost = STILL_GENERATION_COSTS[request.lane]
+  if (creditsBefore < cost) throw new Error('Not enough matcha')
 
   // Check if this studio session has been seen before, so we only write the
   // "Mina Studio session" row once per tab. The image session and generation
@@ -271,12 +271,12 @@ export async function startStillGeneration(
   const { error: insertError } = await supabase.from('mega_generations').insert(rows, { defaultToNull: false })
   if (insertError) throw new Error(insertError.message)
 
-  const creditsAfter = creditsBefore - STILL_GENERATION_COST
+  const creditsAfter = creditsBefore - cost
 
   await recordTransaction({
     passId,
-    delta: -STILL_GENERATION_COST,
-    reason: request.isCreative ? 'mma_still_creative' : 'mma_still_niche',
+    delta: -cost,
+    reason: `mma_still_${request.lane}`,
     refType: 'mma_charge',
     refId: `mma:${generationId}`,
     source: 'mma',
