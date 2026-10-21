@@ -59,8 +59,12 @@ export const GPT_IMAGE = {
 export const GPT_IMAGE_PLUS = {
   ...GPT_IMAGE,
   model: 'gpt-image-2.5-sunburst',
-  /** Its "4K": as many pixels as 3072×3072, so the long side of a 9:16 picture is 4096. */
-  pixelBudget: 3072 * 3072,
+  /**
+   * Its 4K: as many pixels as UHD 3840×2160, so a 9:16 picture is 2160×3840.
+   * OpenAI refuses any edge over 3840, which this keeps every ratio under
+   * (1:1 → 2880×2880, 3:4 → 2480×3312, 2:3 → 2336×3504).
+   */
+  pixelBudget: 3840 * 2160,
   resolution: '4K',
   stillEngine: 'gpt_image_25_sunburst',
 } as const
