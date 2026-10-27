@@ -477,7 +477,10 @@ export function cdnImage(publicBaseUrl: string, url: string, kind: UploadKind) {
   return `${publicBaseUrl}/cdn-cgi/image/width=${MMA_IMAGE_WIDTH},fit=scale-down,${format}/${path}`
 }
 
-const descriptionOf = (item: InventoryItem) => (item.origin === 'scene_library' ? SCENE_LIBRARY_DESCRIPTION : '')
+/** `cdnImage` undone: the plain R2 URL the studio sent. */
+export const plainImage = (url: string) => url.replace(/\/cdn-cgi\/image\/[^/]+/, '')
+
+const descriptionOf =(item: InventoryItem) => (item.origin === 'scene_library' ? SCENE_LIBRARY_DESCRIPTION : '')
 
 //THIS IS THE FIRST BLOCK OF THE USER SENT TO CLAUDE IN THE MMA STEP 1 (CREATE MODEL) AND IT REGROUPS THE UPLOADS AND THE BRIEF
 export function briefMessage(brief: string, inventory: InventoryItem[]) {

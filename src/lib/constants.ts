@@ -182,6 +182,15 @@ export const MATCHA_PACKS = [
   { matchas: 5000, gbp: 2500 },
 ] as const
 
+/**
+ * What every `.mina` prompt file starts with, ahead of its sealed inputs. The
+ * number is the format's version: a new one can be read beside the old.
+ */
+export const PROMPT_FILE_PREFIX = 'MINA-PROMPT-FILE-1:'
+
+/** Authenticated encryption, so a file edited by hand fails to open rather than opening wrong. */
+export const PROMPT_FILE_CIPHER = 'aes-256-gcm'
+
 /** How often the auto-refill cron looks for customers to charge. */
 export const AUTO_REFILL_INTERVAL_MS = 10 * 60 * 1000
 

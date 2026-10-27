@@ -22,5 +22,6 @@ export const env = z
     R2_SECRET_ACCESS_KEY: z.string().min(1),
     R2_BUCKET: z.string().min(1),
     R2_PUBLIC_BASE_URL: z.string().url(),
+    PROMPT_FILE_KEY: z.string().regex(/^[0-9a-f]{64}$/, 'Expected 32 bytes as 64 hex characters'),
   })
   .parse(process.env)
