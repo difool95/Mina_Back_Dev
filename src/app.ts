@@ -3,6 +3,7 @@ import express from 'express'
 
 import { env } from './config/env.js'
 import { errorHandler } from './middlewares/error.middleware.js'
+import { brandMemoryRouter } from './routes/brandMemory.routes.js'
 import { checkoutRouter } from './routes/checkout.routes.js'
 import { creditsRouter } from './routes/credits.routes.js'
 import { mmaRouter } from './routes/mma.routes.js'
@@ -28,6 +29,7 @@ export function createApp() {
   app.use('/api/credits', creditsRouter)
   app.use('/api/mma', mmaRouter)
   app.use('/api/prompt-files', promptFileRouter)
+  app.use('/api/brand-memories', brandMemoryRouter)
 
   // Must stay last, after every route it is meant to catch.
   app.use(errorHandler)

@@ -56,30 +56,60 @@ export async function openAiImage(input: GptImagePayload['input'], images: Image
   return { image, usage: body.usage ?? null }
 }
 
-/** Asks an OpenAI chat model for a JSON object, and returns it parsed with the tokens the call spent. */
-export async function openAiJson(model: string, system: string, user: string) {
+/** One chat completion: the model's message, and the tokens the call spent. */
+async function openAiChat(request: Record<string, unknown>) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-    }),
+    body: JSON.stringify(request),
   })
 
   const body = (await response.json()) as {
-    choices?: { message?: { content?: string } }[]
+    choices?: { message?: { content?: string; tool_calls?: { function: { arguments: string } }[] } }[]
     usage?: OpenAiChatUsage
     error?: { message: string }
   }
   if (!response.ok) throw new Error(`OpenAI ${response.status}: ${body.error?.message ?? 'no message'}`)
 
-  return {
-    answer: JSON.parse(body.choices?.[0]?.message?.content ?? '{}') as unknown,
-    usage: body.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
-  }
+  return { message: body.choices?.[0]?.message, usage: body.usage ?? { prompt_tokens: 0, completion_tokens: 0 } }
+}
+
+/** Asks an OpenAI chat model for a JSON object, and returns it parsed with the tokens the call spent. */
+export async function openAiJson(model: string, system: string, user: string) {
+  const { message, usage } = await openAiChat({
+    model,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+  })
+
+  return { answer: JSON.parse(message?.content ?? '{}') as unknown, usage }
+}
+
+/**
+ * Shows an OpenAI chat model one picture and makes it answer through `tool`,
+ * and returns the tool's arguments parsed with the tokens the call spent.
+ */
+export async function openAiImageTool(
+  model: string,
+  system: string,
+  imageUrl: string,
+  tool: { type: 'function'; function: { name: string } },
+) {
+  const { message, usage } = await openAiChat({
+    model,
+    tools: [tool],
+    tool_choice: { type: 'function', function: { name: tool.function.name } },
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: [{ type: 'image_url', image_url: { url: imageUrl } }] },
+    ],
+  })
+
+  const call = message?.tool_calls?.[0]
+  if (!call) throw new Error('OpenAI answered without the tool')
+
+  return { answer: JSON.parse(call.function.arguments) as unknown, usage }
 }
