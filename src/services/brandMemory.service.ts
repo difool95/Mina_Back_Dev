@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { env } from '../config/env.js'
-import { BRAND_MEMORY_SCANNER } from '../lib/constants.js'
+import { BRAND_MEMORY_MAX, BRAND_MEMORY_SCANNER } from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
 import { cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { BrandMemoryScan } from '../types/brandMemory.types.js'
@@ -31,7 +31,6 @@ async function scanPicture(url: string) {
  */
 export async function createBrandMemory(userId: string, url: string) {
   const passId = `pass:user:${userId}`
-  const scan = await scanPicture(url)
 
   const { count, error: countError } = await supabase
     .from('mega_generations')
@@ -39,6 +38,10 @@ export async function createBrandMemory(userId: string, url: string) {
     .eq('mg_pass_id', passId)
     .eq('mg_record_type', 'product')
   if (countError) throw new Error(countError.message)
+  // Checked if we reached the cap of brand memories for the user
+  if ((count ?? 0) >= BRAND_MEMORY_MAX) throw new Error(`Brand memory is limited to ${BRAND_MEMORY_MAX} assets`)
+
+  const scan = await scanPicture(url)
 
   const id = randomUUID()
   const status = scan ? 'done' : 'error'
