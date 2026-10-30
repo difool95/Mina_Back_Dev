@@ -49,31 +49,30 @@ export const BRAND_MEMORY_SCAN_TOOL = {
 } as const
 
 /**
- * A new brand memory's `mg_mma_vars`, holding its one picture. Without a
- * scan the reading is left empty, and `scanning` says so.
+ * A new brand memory's `mg_mma_vars`, holding its pictures, the first as
+ * cover. The scan reads the first one only; every picture takes its roles.
+ * Without a scan the reading is left empty, and `scanning` says so.
  */
-export function brandMemoryVars(scan: BrandMemoryScan | null, url: string, sortOrder: number): BrandMemoryVars {
+export function brandMemoryVars(scan: BrandMemoryScan | null, urls: string[], sortOrder: number): BrandMemoryVars {
   const reading = scan ?? { kind: 'product', name: '', description: '', tags: [], aliases: [], category: 'product' }
 
   return {
     ...reading,
-    images: [url],
+    images: urls,
     origin: 'upload',
     scanning: scan !== null,
-    thumb_url: url,
+    thumb_url: urls[0]!,
     use_count: 0,
     sort_order: sortOrder,
-    asset_items: [
-      {
-        url,
-        roles: [reading.category, 'frame_reference'],
-        origin: 'upload',
-        aliases: [url],
-        has_face: false,
-        has_person: false,
-      },
-    ],
-    source_urls: [url],
+    asset_items: urls.map((url) => ({
+      url,
+      roles: [reading.category, 'frame_reference'],
+      origin: 'upload',
+      aliases: [url],
+      has_face: false,
+      has_person: false,
+    })),
+    source_urls: urls,
     last_used_at: '',
     memory_enabled: true,
   }

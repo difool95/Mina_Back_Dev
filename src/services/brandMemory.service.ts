@@ -26,13 +26,14 @@ async function scanPicture(url: string) {
 }
 
 /**
- * Saves a picture the user already put on R2 as a new brand memory. A failed
+ * Saves pictures the user already put on R2 (up to five, the first being the
+ * one scanned and the cover) as a new brand memory. A failed
  * scan still writes the row, as `error`, which the profile never lists.
  *
  * The frontend numbers `sortOrder` before uploading, so pictures added
  * together each get their own place however their scans finish.
  */
-export async function createBrandMemory(userId: string, url: string, sortOrder: number) {
+export async function createBrandMemory(userId: string, urls: string[], sortOrder: number) {
   const passId = `pass:user:${userId}`
 
   const { count, error: countError } = await supabase
@@ -44,7 +45,9 @@ export async function createBrandMemory(userId: string, url: string, sortOrder: 
   // Checked if we reached the cap of brand memories for the user
   if ((count ?? 0) >= BRAND_MEMORY_MAX) throw new Error(`Brand memory is limited to ${BRAND_MEMORY_MAX} assets`)
 
-  const scan = await scanPicture(url)
+  // The controller lets no empty list through, so there is always a first picture.
+  const cover = urls[0]!
+  const scan = await scanPicture(cover)
 
   const id = randomUUID()
   const status = scan ? 'done' : 'error'
@@ -60,9 +63,9 @@ export async function createBrandMemory(userId: string, url: string, sortOrder: 
       mg_status: status,
       mg_type: 'image',
       mg_content_type: 'image',
-      mg_output_url: url,
+      mg_output_url: cover,
       mg_prompt: scan?.name ?? '',
-      mg_mma_vars: brandMemoryVars(scan, url, sortOrder),
+      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder),
       mg_created_at: at,
       mg_updated_at: at,
     },

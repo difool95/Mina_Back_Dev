@@ -84,6 +84,9 @@ export const BRAND_MEMORY_SCANNER = { model: 'gpt-4o-mini' } as const
 /** The most brand memories one user can keep. */
 export const BRAND_MEMORY_MAX = 1000
 
+/** The most pictures one brand memory holds. */
+export const BRAND_MEMORY_MAX_IMAGES = 5
+
 // Prices in USD per million tokens.Checked on 2026-10-16 against each provider's pricing page.
 /** Claude: cache writes are the 5-minute kind (1.25× input), cache reads 0.1× input. */
 export const CLAUDE_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
