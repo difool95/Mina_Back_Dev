@@ -28,8 +28,11 @@ async function scanPicture(url: string) {
 /**
  * Saves a picture the user already put on R2 as a new brand memory. A failed
  * scan still writes the row, as `error`, which the profile never lists.
+ *
+ * The frontend numbers `sortOrder` before uploading, so pictures added
+ * together each get their own place however their scans finish.
  */
-export async function createBrandMemory(userId: string, url: string) {
+export async function createBrandMemory(userId: string, url: string, sortOrder: number) {
   const passId = `pass:user:${userId}`
 
   const { count, error: countError } = await supabase
@@ -59,7 +62,7 @@ export async function createBrandMemory(userId: string, url: string) {
       mg_content_type: 'image',
       mg_output_url: url,
       mg_prompt: scan?.name ?? '',
-      mg_mma_vars: brandMemoryVars(scan, url, (count ?? 0) + 1),
+      mg_mma_vars: brandMemoryVars(scan, url, sortOrder),
       mg_created_at: at,
       mg_updated_at: at,
     },
