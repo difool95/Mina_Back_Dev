@@ -9,7 +9,7 @@ import {
   DAY_SECONDS,
 } from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
-import { cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
+import { BRAND_MEMORY_ID_PREFIX, cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { BrandMemoryScan, BrandMemoryVars } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
 import { copyStudioImage, deleteStudioImage } from './mma/mmaUploads.service.js'
@@ -138,6 +138,30 @@ export async function saveUsedUploadsAsBrandMemories(userId: string, urls: strin
   // A failed one is only logged; the others are saved anyway.
   for (const result of results) {
     if (result.status === 'rejected') logMmaError(result.reason)
+  }
+}
+
+//We update the brand memories that are used in the generation their last_used and use_count
+export async function markBrandMemoriesUsed(userId: string, memoryIds: string[]) {
+  if (!memoryIds.length) return
+
+  const { data, error } = await supabase
+    .from('mega_generations')
+    .select('mg_id, mg_mma_vars')
+    .eq('mg_pass_id', `pass:user:${userId}`)
+    .in('mg_id', memoryIds.map((id) => `${BRAND_MEMORY_ID_PREFIX}${id}`))
+  if (error) throw new Error(error.message)
+
+  const at = new Date().toISOString()
+  const used = (data ?? []) as { mg_id: string; mg_mma_vars: BrandMemoryVars }[]
+  for (const memory of used) {
+    const vars = { ...memory.mg_mma_vars, use_count: memory.mg_mma_vars.use_count + 1, last_used_at: at }
+
+    const { error: updateError } = await supabase
+      .from('mega_generations')
+      .update({ mg_mma_vars: vars, mg_updated_at: at })
+      .eq('mg_id', memory.mg_id)
+    if (updateError) throw new Error(updateError.message)
   }
 }
 

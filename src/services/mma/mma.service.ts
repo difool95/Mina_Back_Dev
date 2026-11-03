@@ -11,7 +11,7 @@ import type {
   StillGenerationRequest,
   StillGenerationResult,
 } from '../../types/mma/mma.types.js'
-import { saveUsedUploadsAsBrandMemories } from '../../services/brandMemory.service.js'
+import { markBrandMemoriesUsed, saveUsedUploadsAsBrandMemories } from '../../services/brandMemory.service.js'
 import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
 import { costRates } from './mmaCostRates.service.js'
 import { logMmaError } from './mmaErrorLogger.service.js'
@@ -127,6 +127,8 @@ async function runStillPipeline(
   //nothing waits on it.
   const usedUploads = assets.output.items.filter((item) => item.origin === 'upload' && item.use_in_generation)
   saveUsedUploadsAsBrandMemories(userId, usedUploads.map((item) => plainImage(item.url))).catch(logMmaError)
+  // The brand memories step 1 kept are counted as used, the same way: nothing waits on it.
+  markBrandMemoriesUsed(userId, assets.output.used_memory_ids).catch(logMmaError)
 
   await markStatus(generationId, 'prompting')
   const knowledge = runKnowledgeFiles(request.lane, assets.output)
