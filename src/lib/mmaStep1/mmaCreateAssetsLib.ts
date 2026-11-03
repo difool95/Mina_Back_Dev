@@ -29,6 +29,11 @@ const SEMANTIC_HINTS: Record<PillHint, string> = { scene: 'scene', logo: 'logo',
 /** The name of any picture picked from the scene library; the prompt refers to it by this name. */
 export const SCENE_LIBRARY_NAME = 'Mina Scene Library template'
 
+/** Added to a brand memory picture's note, so Claude knows that the picture is a brand memory rather than uploaded it for this generation. */
+const MEMORY_NOTE = "This came from the customer's saved Memory library."
+
+export const BRAND_MEMORY_ID_PREFIX = 'product:'
+
 const SCENE_LIBRARY_DESCRIPTION =
   "A scene from Mina's own library, not the customer's photo: its setting, camera, pose, wardrobe, light and grade are the reference. Anyone in it is a placeholder model."
 
@@ -490,7 +495,7 @@ export function briefMessage(brief: string, inventory: InventoryItem[]) {
     semantic_hint: SEMANTIC_HINTS[item.pill_hint],
     origin: item.origin,
     memory_id: item.memory_id,
-    selection_source: null,
+    selection_source: item.selection_source,
     name: item.name,
     description: descriptionOf(item),
   }))
@@ -500,7 +505,9 @@ export function briefMessage(brief: string, inventory: InventoryItem[]) {
 
 /** The caption sent just ahead of each picture. */
 export function imageNote(item: InventoryItem) {
-  return `IMAGE ROLE ${item.index}: UNVERIFIED CREATE INPUT ${item.index} · pill hint: ${item.pill_hint}\nIMAGE NOTE ${item.index}: Current name: ${item.name}`
+  const note = `IMAGE ROLE ${item.index}: UNVERIFIED CREATE INPUT ${item.index} · pill hint: ${item.pill_hint}\nIMAGE NOTE ${item.index}: Current name: ${item.name}`
+
+  return item.origin === 'memory' ? `${note} ${MEMORY_NOTE}` : note
 }
 
 function defaultIntegrationNotes({
@@ -558,7 +565,7 @@ export function planOutput(plan: CreateAssetPlan, inventory: InventoryItem[], mo
       reason: reading.reason,
       asset_id: `create_asset_${entry.index}`,
       ...(entry.origin === 'scene_library' && { template: true as const }),
-      memory_id: null,
+      memory_id: entry.memory_id,
       slot_hint: entry.pill_hint,
       confidence: reading.confidence,
       default_job: reading.job,
@@ -567,7 +574,7 @@ export function planOutput(plan: CreateAssetPlan, inventory: InventoryItem[], mo
       presentation: reading.presentation,
       semantic_hint: SEMANTIC_HINTS[entry.pill_hint],
       semantic_type: reading.semantic_type,
-      selection_source: null,
+      selection_source: entry.selection_source,
       background_policy: reading.background_policy,
       integration_notes: defaultIntegrationNotes({
         job: reading.job,
@@ -582,6 +589,12 @@ export function planOutput(plan: CreateAssetPlan, inventory: InventoryItem[], mo
   const inserted = items.filter((item) => item.use_in_generation && item.job !== 'base_scene')
   const colorPolicies = inserted.map((item) => item.color_policy)
   const reason = recastReason(plan, items, inserted)
+
+  // A memory sent with several pictures is used as soon as one of them is.
+  const memoryIds = [...new Set(items.flatMap((item) => item.memory_id ?? []))]
+  const usedMemoryIds = memoryIds.filter((id) =>
+    items.some((item) => item.memory_id === id && item.use_in_generation),
+  )
 
   return {
     items,
@@ -598,8 +611,8 @@ export function planOutput(plan: CreateAssetPlan, inventory: InventoryItem[], mo
     },
     person_recast: { active: reason === 'recast', reason },
     preserve_scene: plan.preserve_scene,
-    used_memory_ids: [],
-    unused_memory_ids: [],
+    used_memory_ids: usedMemoryIds,
+    unused_memory_ids: memoryIds.filter((id) => !usedMemoryIds.includes(id)),
     production_profile: plan.production_profile,
     target_output_medium: plan.target_output_medium,
     uncertain_memory_ids: [],

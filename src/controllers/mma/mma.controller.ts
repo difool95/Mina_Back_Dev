@@ -21,7 +21,7 @@ const stillBody = z.object({
       origin: z.enum(['upload', 'scene_library']),
     }),
   ),
-  brandMemories: z.array(z.object({ id: z.string(), images: z.array(assetUrl).min(1) })),
+  brandMemories: z.array(z.object({ id: z.string(), name: z.string(), images: z.array(assetUrl).min(1) })),
 })
 
 //THIS METHOD IS USED TO START THE STILL GENERATION PROCESS. IT TAKES THE REQUEST AND RESPONSE OBJECTS AS PARAMETERS AND RETURNS A JSON RESPONSE WITH THE RESULT OF THE STILL GENERATION.

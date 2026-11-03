@@ -72,9 +72,13 @@ export interface InventoryItem {
   name: string
   /** 1-based, in the order the pictures were added. */
   index: number
-  origin: 'scene_library' | 'upload'
-  memory_id: null
+  /** `memory` for a picture of a brand memory ticked in the studio. */
+  origin: 'scene_library' | 'upload' | 'memory'
+  /** The brand memory's id (its `mg_id` without `product:`), null for any other picture. */
+  memory_id: string | null
   pill_hint: PillHint
+  /** `pill` for a brand memory picture, chosen through the studio's "Using" pill. */
+  selection_source: 'pill' | null
 }
 
 /** Production facts about the requested final image, as the Create Asset Director reads them. */
@@ -129,7 +133,7 @@ export interface CreateAssetItem {
   asset_id: string
   /** Only on a scene library picture. */
   template?: true
-  memory_id: null
+  memory_id: InventoryItem['memory_id']
   slot_hint: PillHint
   confidence: number
   default_job: AssetJob
@@ -138,7 +142,7 @@ export interface CreateAssetItem {
   presentation: string
   semantic_hint: string
   semantic_type: string
-  selection_source: null
+  selection_source: InventoryItem['selection_source']
   background_policy: BackgroundPolicy
   integration_notes: string
   use_in_generation: boolean

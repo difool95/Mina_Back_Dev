@@ -109,7 +109,7 @@ async function runStillPipeline(
     failGeneration(passId, generationId, request, spend, code, message ?? '')
 
   await markStatus(generationId, 'scanning')
-  const assets = await runCreateAssetIntelligence(request.brief, request.uploads)
+  const assets = await runCreateAssetIntelligence(request.brief, request.uploads, request.brandMemories)
   if (assets.usage) spend.claude.push(assets.usage)
 
   const { error } = await supabase

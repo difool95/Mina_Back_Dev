@@ -21,11 +21,10 @@ export function promptFileInputs(vars: PromptFileVars): PromptFileInputs {
     lane: vars.inputs?.still_lane ?? 'niche',
     platform: vars.inputs?.platform ?? 'tiktok',
     aspectRatio: vars.inputs?.aspect_ratio ?? '9:16',
-    uploads: (vars.meta?.create_asset_plan?.items ?? []).map((item) => ({
-      kind: KIND_BY_HINT[item.slot_hint]!,
-      url: plainImage(item.url),
-      origin: item.origin,
-    })),
+    // Brand memory pictures are not uploads: the file reopens with what was uploaded only.
+    uploads: (vars.meta?.create_asset_plan?.items ?? []).flatMap((item) =>
+      item.origin === 'memory' ? [] : [{ kind: KIND_BY_HINT[item.slot_hint]!, url: plainImage(item.url), origin: item.origin }],
+    ),
   }
 }
 

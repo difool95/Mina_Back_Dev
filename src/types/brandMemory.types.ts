@@ -25,11 +25,11 @@ export interface BrandMemoryItem {
 }
 
 /**
- * A brand memory sent with a Create, with the pictures of it the studio
- * chose, cover first, in what the uploads left of the 13 places. Same as the frontend's.
+ * picked brand memories that the user has selected in the studio, with their names and the URLs of their pictures.
  */
 export interface PickedBrandMemoryPictures {
   id: string
+  name: string
   images: string[]
 }
 

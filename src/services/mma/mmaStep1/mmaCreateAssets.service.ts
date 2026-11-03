@@ -4,6 +4,7 @@ import { env } from '../../../config/env.js'
 import { CREATE_ASSET_DIRECTOR } from '../../../lib/constants.js'
 import { stepTiming } from '../../../lib/date.js'
 import {
+  BRAND_MEMORY_ID_PREFIX,
   CREATE_ASSET_DIRECTOR_PROMPT,
   CREATE_ASSET_PLAN_TOOL,
   PILLS,
@@ -13,6 +14,7 @@ import {
   imageNote,
   planOutput,
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
+import type { PickedBrandMemoryPictures } from '../../../types/brandMemory.types.js'
 import type { CreateAssetPayload, CreateAssetPlan, InventoryItem, StudioUpload } from '../../../types/mma/mma.types.js'
 import { askClaude } from '../../thirdPartyClients/anthropic.client.js'
 import { logMmaError } from '../mmaErrorLogger.service.js'
@@ -27,6 +29,20 @@ function toInventoryItem(upload: StudioUpload, index: number): InventoryItem {
     origin: upload.origin,
     memory_id: null,
     pill_hint: PILLS[upload.kind].hint,
+    selection_source: null,
+  }
+}
+
+/** One picture of a brand memory ticked in the studio, read as a picture under the product pill. */
+function toMemoryItem(memory: PickedBrandMemoryPictures, url: string, index: number): InventoryItem {
+  return {
+    url: cdnImage(env.R2_PUBLIC_BASE_URL, url, 'product'),
+    name: memory.name,
+    index,
+    origin: 'memory',
+    memory_id: memory.id.slice(BRAND_MEMORY_ID_PREFIX.length),
+    pill_hint: PILLS.product.hint,
+    selection_source: 'pill',
   }
 }
 
@@ -41,7 +57,11 @@ function toInventoryItem(upload: StudioUpload, index: number): InventoryItem {
  * Returns the step's `mg_payload`. A failure is written to its `error` rather
  * than thrown, next to whatever had been gathered by then, and leaves `output` null.
  */
-export async function runCreateAssetIntelligence(brief: string, uploads: StudioUpload[]): Promise<CreateAssetPayload> {
+export async function runCreateAssetIntelligence(
+  brief: string,
+  uploads: StudioUpload[],
+  brandMemories: PickedBrandMemoryPictures[],
+): Promise<CreateAssetPayload> {
   const startedAt = new Date()
   //the payload is the data that will be stored in the mg_payload column of the mega_generations table. It contains the input,
   //output, and other information about the MMA Step 1 of the generation.
@@ -57,7 +77,12 @@ export async function runCreateAssetIntelligence(brief: string, uploads: StudioU
 
   try {
     //this line is for creating the inventory of the uploads. It maps over the uploads and creates an inventory item for each upload using the toInventoryItem function.
-    const inventory = uploads.map((upload, i) => toInventoryItem(upload, i + 1))
+    //The brand memory pictures come after the uploads, numbered on from them.
+    const memoryPictures = brandMemories.flatMap((memory) => memory.images.map((url) => ({ memory, url })))
+    const inventory = [
+      ...uploads.map((upload, i) => toInventoryItem(upload, i + 1)),
+      ...memoryPictures.map(({ memory, url }, i) => toMemoryItem(memory, url, uploads.length + i + 1)),
+    ]
     payload.input.inventory = inventory
 
     const request: Anthropic.MessageCreateParamsNonStreaming = {
