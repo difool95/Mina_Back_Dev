@@ -52,8 +52,16 @@ export const BRAND_MEMORY_SCAN_TOOL = {
  * A new brand memory's `mg_mma_vars`, holding its pictures, the first as
  * cover. The scan reads the first one only; every picture takes its roles.
  * Without a scan the reading is left empty, and `scanning` says so.
+ *
+ * `last_used_at` starts at the creation time (`createdAt`, an ISO string), so
+ * a memory never used still has a date to expire from.
  */
-export function brandMemoryVars(scan: BrandMemoryScan | null, urls: string[], sortOrder: number): BrandMemoryVars {
+export function brandMemoryVars(
+  scan: BrandMemoryScan | null,
+  urls: string[],
+  sortOrder: number,
+  createdAt: string,
+): BrandMemoryVars {
   const reading = scan ?? { kind: 'product', name: '', description: '', tags: [], aliases: [], category: 'product' }
 
   return {
@@ -73,7 +81,7 @@ export function brandMemoryVars(scan: BrandMemoryScan | null, urls: string[], so
       has_person: false,
     })),
     source_urls: urls,
-    last_used_at: '',
+    last_used_at: createdAt,
     memory_enabled: true,
   }
 }

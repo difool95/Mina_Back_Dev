@@ -65,7 +65,7 @@ export async function createBrandMemory(userId: string, urls: string[], sortOrde
       mg_content_type: 'image',
       mg_output_url: cover,
       mg_prompt: scan?.name ?? '',
-      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder),
+      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder, at),
       mg_created_at: at,
       mg_updated_at: at,
     },
