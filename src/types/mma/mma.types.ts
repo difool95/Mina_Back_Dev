@@ -1,3 +1,5 @@
+import type { PickedBrandMemoryPictures } from '../brandMemory.types.js'
+
 /** Where the output is meant to go, read off the ratio the user picked in the studio. */
 export type MmaPlatform = 'tiktok' | 'instagram-post' | 'print' | 'square'
 
@@ -27,6 +29,8 @@ export interface StillGenerationRequest {
   /** What the user typed, the locked strip on its last line. */
   brief: string
   uploads: StudioUpload[]
+  /** The ticked brand memories, in the "Using" pill's order. */
+  brandMemories: PickedBrandMemoryPictures[]
   ip: string
   userAgent: string
 }

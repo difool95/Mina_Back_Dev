@@ -24,6 +24,15 @@ export interface BrandMemoryItem {
   has_person: boolean
 }
 
+/**
+ * A brand memory sent with a Create, with the pictures of it the studio
+ * chose, cover first, in what the uploads left of the 13 places. Same as the frontend's.
+ */
+export interface PickedBrandMemoryPictures {
+  id: string
+  images: string[]
+}
+
 /** A brand memory's `mg_mma_vars`. Kept identical to the frontend's. */
 export interface BrandMemoryVars extends BrandMemoryScan {
   /** The pictures' URLs, the first being the cover. `source_urls` and `asset_items` follow it. */
