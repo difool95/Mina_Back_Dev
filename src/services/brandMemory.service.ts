@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto'
 
 import { env } from '../config/env.js'
-import { BRAND_MEMORY_MAX, BRAND_MEMORY_SCANNER } from '../lib/constants.js'
+import { BRAND_MEMORY_EXPIRY_DAYS, BRAND_MEMORY_MAX, BRAND_MEMORY_SCANNER, DAY_SECONDS } from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
 import { cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { BrandMemoryScan } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
+import { deleteStudioImage } from './mma/mmaUploads.service.js'
 import { openAiImageTool } from './thirdPartyClients/openai.client.js'
 import { supabase } from './thirdPartyClients/supabase.client.js'
 
@@ -74,4 +75,39 @@ export async function createBrandMemory(userId: string, urls: string[], sortOrde
   if (error) throw new Error(error.message)
 
   return { id }
+}
+
+/**
+ * Deletes every brand memory not used for BRAND_MEMORY_EXPIRY_DAYS, the way
+ * the profile deletes one: the row first, then each of its pictures from R2
+ * through `deleteStudioImage`. A picture that fails to go is logged and left;
+ * its row is already gone, so the memory never comes back.
+ *
+ * `last_used_at` is an ISO string, so comparing it as text against the cutoff
+ * compares the dates. A memory with no date yet is left alone.
+ */
+export async function sweepExpiredBrandMemories() {
+  const cutoff = new Date(Date.now() - BRAND_MEMORY_EXPIRY_DAYS * DAY_SECONDS * 1000).toISOString()
+
+  const { data, error } = await supabase
+    .from('mega_generations')
+    .select('mg_id, mg_pass_id, mg_mma_vars')
+    .eq('mg_record_type', 'product')
+    .neq('mg_mma_vars->>last_used_at', '')
+    .lt('mg_mma_vars->>last_used_at', cutoff)
+  if (error) throw new Error(error.message)
+
+  const expired = (data ?? []) as { mg_id: string; mg_pass_id: string; mg_mma_vars: { images?: string[] } }[]
+  for (const memory of expired) {
+    const { error: deleteError } = await supabase.from('mega_generations').delete().eq('mg_id', memory.mg_id)
+    if (deleteError) throw new Error(deleteError.message)
+
+    const userId = memory.mg_pass_id.replace(/^pass:user:/, '')
+    const results = await Promise.allSettled(
+      (memory.mg_mma_vars.images ?? []).map((url) => deleteStudioImage(userId, url)),
+    )
+    for (const result of results) if (result.status === 'rejected') logMmaError(result.reason)
+  }
+
+  return { deleted: expired.length }
 }

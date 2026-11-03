@@ -1,6 +1,7 @@
 import { createApp } from './app.js'
 import { env } from './config/env.js'
 import { scheduleAutoRefill } from './jobs/autoRefill.job.js'
+import { scheduleBrandMemoryExpiry } from './jobs/brandMemory.job.js'
 import { scheduleExchangeRate, scheduleGenerationsCount } from './jobs/costRates.job.js'
 import { scheduleCreditExpiry } from './jobs/credits.job.js'
 
@@ -13,3 +14,4 @@ scheduleCreditExpiry()
 scheduleAutoRefill()
 scheduleExchangeRate()
 scheduleGenerationsCount()
+scheduleBrandMemoryExpiry()

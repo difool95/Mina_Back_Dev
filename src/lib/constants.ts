@@ -87,6 +87,12 @@ export const BRAND_MEMORY_MAX = 1000
 /** The most pictures one brand memory holds. */
 export const BRAND_MEMORY_MAX_IMAGES = 5
 
+/** How long a brand memory can go unused (its `last_used_at`) before the daily sweep deletes it. */
+export const BRAND_MEMORY_EXPIRY_DAYS = 90
+
+/** The hour of the day, in TIME_ZONE, the brand memory sweep runs at. */
+export const BRAND_MEMORY_EXPIRY_HOUR = 13
+
 // Prices in USD per million tokens.Checked on 2026-10-16 against each provider's pricing page.
 /** Claude: cache writes are the 5-minute kind (1.25× input), cache reads 0.1× input. */
 export const CLAUDE_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
