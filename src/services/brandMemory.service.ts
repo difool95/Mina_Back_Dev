@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto'
 
 import { env } from '../config/env.js'
-import { BRAND_MEMORY_EXPIRY_DAYS, BRAND_MEMORY_MAX, BRAND_MEMORY_SCANNER, DAY_SECONDS } from '../lib/constants.js'
+import {
+  BRAND_MEMORY_EXPIRY_DAYS,
+  BRAND_MEMORY_MAX,
+  BRAND_MEMORY_SCANNER,
+  BRAND_MEMORY_USE_COUNT_RESET_DAYS,
+  DAY_SECONDS,
+} from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
 import { cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
-import type { BrandMemoryScan } from '../types/brandMemory.types.js'
+import type { BrandMemoryScan, BrandMemoryVars } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
 import { deleteStudioImage } from './mma/mmaUploads.service.js'
 import { openAiImageTool } from './thirdPartyClients/openai.client.js'
@@ -110,4 +116,30 @@ export async function sweepExpiredBrandMemories() {
   }
 
   return { deleted: expired.length }
+}
+
+//This method resets the use_count of brand memories that have not been used for BRAND_MEMORY_USE_COUNT_RESET_DAYS. 
+// It sets the use_count back to 0 for those brand memories.
+export async function resetIdleUseCounts() {
+  const cutoff = new Date(Date.now() - BRAND_MEMORY_USE_COUNT_RESET_DAYS * DAY_SECONDS * 1000).toISOString()
+
+  const { data, error } = await supabase
+    .from('mega_generations')
+    .select('mg_id, mg_mma_vars')
+    .eq('mg_record_type', 'product')
+    .neq('mg_mma_vars->>last_used_at', '')
+    .lt('mg_mma_vars->>last_used_at', cutoff)
+    .neq('mg_mma_vars->>use_count', '0')
+  if (error) throw new Error(error.message)
+
+  const idle = (data ?? []) as { mg_id: string; mg_mma_vars: BrandMemoryVars }[]
+  for (const memory of idle) {
+    const { error: updateError } = await supabase
+      .from('mega_generations')
+      .update({ mg_mma_vars: { ...memory.mg_mma_vars, use_count: 0 }, mg_updated_at: new Date().toISOString() })
+      .eq('mg_id', memory.mg_id)
+    if (updateError) throw new Error(updateError.message)
+  }
+
+  return { reset: idle.length }
 }

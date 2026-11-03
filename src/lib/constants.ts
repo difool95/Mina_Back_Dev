@@ -90,6 +90,9 @@ export const BRAND_MEMORY_MAX_IMAGES = 5
 /** How long a brand memory can go unused (its `last_used_at`) before the daily sweep deletes it. */
 export const BRAND_MEMORY_EXPIRY_DAYS = 90
 
+/** How long a brand memory can go unused (its `last_used_at`) before the daily sweep sets its `use_count` back to 0. */
+export const BRAND_MEMORY_USE_COUNT_RESET_DAYS = 7
+
 /** The hour of the day, in TIME_ZONE, the brand memory sweep runs at. */
 export const BRAND_MEMORY_EXPIRY_HOUR = 9
 
