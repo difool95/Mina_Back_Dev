@@ -1,4 +1,4 @@
-import type { BrandMemoryScan, BrandMemoryVars } from '../../types/brandMemory.types.js'
+import type { BrandMemoryOrigin, BrandMemoryScan, BrandMemoryVars } from '../../types/brandMemory.types.js'
 
 export const BRAND_MEMORY_SCANNER_PROMPT =
   'You are a product & design cataloguer for a beauty / fashion / perfumery brand studio. ' +
@@ -54,28 +54,33 @@ export const BRAND_MEMORY_SCAN_TOOL = {
  * Without a scan the reading is left empty, and `scanning` says so.
  *
  * `last_used_at` starts at the creation time (`createdAt`, an ISO string), so
- * a memory never used still has a date to expire from.
+ * a memory never used still has a date to expire from. One saved from a
+ * Create's upload (`sourceUploadUrl`) has `origin` "create" and was used by
+ * that Create, so its `use_count` starts at 1.
  */
 export function brandMemoryVars(
   scan: BrandMemoryScan | null,
   urls: string[],
   sortOrder: number,
   createdAt: string,
+  sourceUploadUrl?: string,
 ): BrandMemoryVars {
   const reading = scan ?? { kind: 'product', name: '', description: '', tags: [], aliases: [], category: 'product' }
+  const origin: BrandMemoryOrigin = sourceUploadUrl ? 'create' : 'upload'
 
   return {
     ...reading,
     images: urls,
-    origin: 'upload',
+    origin,
+    ...(sourceUploadUrl && { source_upload_url: sourceUploadUrl }),
     scanning: scan !== null,
     thumb_url: urls[0]!,
-    use_count: 0,
+    use_count: origin === 'create' ? 1 : 0,
     sort_order: sortOrder,
     asset_items: urls.map((url) => ({
       url,
       roles: [reading.category, 'frame_reference'],
-      origin: 'upload',
+      origin,
       aliases: [url],
       has_face: false,
       has_person: false,

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COSTS, STILL_RENDERERS } from '../../lib/constants.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
+import { plainImage } from '../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import { stillMmaVars } from '../../lib/mmaVars/mmaVarsLib.js'
 import type {
   MmaSpend,
@@ -10,6 +11,7 @@ import type {
   StillGenerationRequest,
   StillGenerationResult,
 } from '../../types/mma/mma.types.js'
+import { saveUsedUploadsAsBrandMemories } from '../../services/brandMemory.service.js'
 import { recordTransaction, refundMmaCharge } from '../../services/credits.service.js'
 import { costRates } from './mmaCostRates.service.js'
 import { logMmaError } from './mmaErrorLogger.service.js'
@@ -99,6 +101,7 @@ async function failGeneration(
  * priced whether the generation ends done or failed.
  */
 async function runStillPipeline(
+  userId: string,
   passId: string,
   generationId: string,
   imageSessionId: string,
@@ -119,6 +122,11 @@ async function runStillPipeline(
 
   if (error) throw new Error(error.message)
   if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
+
+  // The pictures the user uploaded (not scene library picks, not brand memories) that step 1 kept become brand memories, beside the steps below rather than ahead of them:
+  //nothing waits on it.
+  const usedUploads = assets.output.items.filter((item) => item.origin === 'upload' && item.use_in_generation)
+  saveUsedUploadsAsBrandMemories(userId, usedUploads.map((item) => plainImage(item.url))).catch(logMmaError)
 
   await markStatus(generationId, 'prompting')
   const knowledge = runKnowledgeFiles(request.lane, assets.output)
@@ -295,7 +303,7 @@ export async function startStillGeneration(
 //Any error thrown along the way (a row that could not be written…) is logged, the matcha is refunded and the generation marked as failed.
 //The spend object is passed along to collect the usage of every paid call, so the generation's mg_cost_data can be calculated whether it ends done or failed.
   const spend: MmaSpend = { claude: [], seo: null, image: null }
-  runStillPipeline(passId, generationId, imageSessionId, request, spend)
+  runStillPipeline(userId, passId, generationId, imageSessionId, request, spend)
     .catch((error) => {
       logMmaError(error)
       return failGeneration(passId, generationId, request, spend, 'mma_pipeline_failed', (error as Error).message)

@@ -12,7 +12,7 @@ import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } 
 import { cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { BrandMemoryScan, BrandMemoryVars } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
-import { deleteStudioImage } from './mma/mmaUploads.service.js'
+import { copyStudioImage, deleteStudioImage } from './mma/mmaUploads.service.js'
 import { openAiImageTool } from './thirdPartyClients/openai.client.js'
 import { supabase } from './thirdPartyClients/supabase.client.js'
 
@@ -40,7 +40,12 @@ async function scanPicture(url: string) {
  * The frontend numbers `sortOrder` before uploading, so pictures added
  * together each get their own place however their scans finish.
  */
-export async function createBrandMemory(userId: string, urls: string[], sortOrder: number) {
+export async function createBrandMemory(
+  userId: string,
+  urls: string[],
+  sortOrder: number,
+  sourceUploadUrl?: string,
+) {
   const passId = `pass:user:${userId}`
 
   const { count, error: countError } = await supabase
@@ -72,7 +77,7 @@ export async function createBrandMemory(userId: string, urls: string[], sortOrde
       mg_content_type: 'image',
       mg_output_url: cover,
       mg_prompt: scan?.name ?? '',
-      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder, at),
+      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder, at, sourceUploadUrl),
       mg_created_at: at,
       mg_updated_at: at,
     },
@@ -81,6 +86,59 @@ export async function createBrandMemory(userId: string, urls: string[], sortOrde
   if (error) throw new Error(error.message)
 
   return { id }
+}
+
+//This method saves the uploads used in a generation as brand memories for the user. It checks if the uploads are already saved and if there is room left
+//for new brand memories. It then copies the uploads to the user's brand memory and creates a new brand memory entry for each upload.
+export async function saveUsedUploadsAsBrandMemories(userId: string, urls: string[]) {
+  const { data, error } = await supabase
+    .from('mega_generations')
+    .select('mg_mma_vars')
+    .eq('mg_pass_id', `pass:user:${userId}`)
+    .eq('mg_record_type', 'product')
+  if (error) throw new Error(error.message)
+
+  // The user's brand memories as they stand before this Create.
+  const memories: BrandMemoryVars[] = []
+  for (const row of data ?? []) {
+    memories.push(row.mg_mma_vars as BrandMemoryVars)
+  }
+
+  // we take the source upload urls so that we don't save them twice in brand memory
+  // We get the highest sort order in the brand memory list
+  const alreadySavedUploads = new Set<string>()
+  let lastSortOrder = 0
+  for (const memory of memories) {
+    if (memory.source_upload_url) alreadySavedUploads.add(memory.source_upload_url)
+    if (memory.sort_order > lastSortOrder) lastSortOrder = memory.sort_order
+  }
+
+  // This block is for filtering the urls to save, we only save the urls that are not already saved and we only save up to the maximum number of brand memories allowed.
+  const roomLeft = BRAND_MEMORY_MAX - memories.length
+  const urlsToSave: string[] = []
+  for (const url of urls) {
+    if (urlsToSave.length >= roomLeft) break
+    if (alreadySavedUploads.has(url)) continue
+    if (urlsToSave.includes(url)) continue
+
+    urlsToSave.push(url)
+  }
+
+  // One upload becomes one memory: its own copy of the picture, then the scan and the row.
+  const saveOne = async (url: string, sortOrder: number) => {
+    const copyUrl = await copyStudioImage(userId, url)
+    await createBrandMemory(userId, [copyUrl], sortOrder, url)
+  }
+
+  // All saved at the same time. Each place in the bar is chosen here, before the
+  // scans start, so each memory keeps its place whichever scan finishes first.
+  const saving = urlsToSave.map((url, i) => saveOne(url, lastSortOrder + i + 1))
+  const results = await Promise.allSettled(saving)
+
+  // A failed one is only logged; the others are saved anyway.
+  for (const result of results) {
+    if (result.status === 'rejected') logMmaError(result.reason)
+  }
 }
 
 /**

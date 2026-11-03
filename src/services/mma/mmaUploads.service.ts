@@ -17,6 +17,15 @@ export function storeStudioImage(userId: string, body: Buffer, contentType: stri
   return putObject(`${ownerFolder(userId)}/${randomUUID()}.${extension}`, body, contentType)
 }
 
+//This method is for copying a picture the user uploaded to the studio. It takes the userId and the URL of the picture as parameters and returns a promise that
+//resolves to the new URL of the copied picture.
+export async function copyStudioImage(userId: string, url: string) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Could not read ${url} (${response.status})`)
+
+  return storeStudioImage(userId, Buffer.from(await response.arrayBuffer()), response.headers.get('content-type') ?? '')
+}
+
 //This method is for deleting a picture the user uploaded to the studio. It takes the userId and the URL of the picture as parameters.
 export function deleteStudioImage(userId: string, url: string) {
   const key = url.slice(env.R2_PUBLIC_BASE_URL.length + 1)
