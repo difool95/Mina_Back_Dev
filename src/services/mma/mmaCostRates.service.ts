@@ -1,4 +1,4 @@
-import { EXCHANGE_RATES_URL, MMA_COSTS } from '../../lib/constants.js'
+import { DELETED_STATUS, EXCHANGE_RATES_URL, MMA_COSTS } from '../../lib/constants.js'
 import type { CostRates } from '../../types/mma/mma.types.js'
 import { supabase } from '../thirdPartyClients/supabase.client.js'
 
@@ -43,7 +43,7 @@ export async function refreshGenerationsPerMonth() {
     .from('mega_generations')
     .select('mg_id', { count: 'exact', head: true })
     .eq('mg_record_type', 'generation')
-    .in('mg_status', ['done', 'succeeded'])
+    .in('mg_status', ['done', 'succeeded', DELETED_STATUS])
     .gte('mg_created_at', start)
     .lt('mg_created_at', end)
 

@@ -96,6 +96,15 @@ export const BRAND_MEMORY_USE_COUNT_RESET_DAYS = 7
 /** The hour of the day, in TIME_ZONE, the brand memory sweep runs at. */
 export const BRAND_MEMORY_EXPIRY_HOUR = 9
 
+/** The `mg_status` and `mg_mma_status` of a generation the user deleted; the archive no longer lists it. */
+export const DELETED_STATUS = 'deleted'
+
+/** How long a deleted generation (its `deleted_since`) can still be restored before the daily purge removes its rows. */
+export const GENERATION_PURGE_DAYS = 30
+
+/** The hour of the day, in TIME_ZONE, the deleted generations purge runs at. */
+export const GENERATION_PURGE_HOUR = 10
+
 // Prices in USD per million tokens.Checked on 2026-10-16 against each provider's pricing page.
 /** Claude: cache writes are the 5-minute kind (1.25× input), cache reads 0.1× input. */
 export const CLAUDE_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {

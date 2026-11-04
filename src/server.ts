@@ -4,6 +4,7 @@ import { scheduleAutoRefill } from './jobs/autoRefill.job.js'
 import { scheduleBrandMemoryExpiry } from './jobs/brandMemory.job.js'
 import { scheduleExchangeRate, scheduleGenerationsCount } from './jobs/costRates.job.js'
 import { scheduleCreditExpiry } from './jobs/credits.job.js'
+import { schedulePurgeDeletedGenerations } from './jobs/generations.job.js'
 
 createApp().listen(env.PORT, () => {
   console.log(`Mina API listening on http://localhost:${env.PORT}`)
@@ -15,3 +16,4 @@ scheduleAutoRefill()
 scheduleExchangeRate()
 scheduleGenerationsCount()
 scheduleBrandMemoryExpiry()
+schedulePurgeDeletedGenerations()

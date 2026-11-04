@@ -35,3 +35,23 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
   req.userId = data.user.id
   next()
 }
+
+/**
+ * Lets through only an admin: the caller's `mega_customers.mg_role`. Runs
+ * after `requireUser`, which has already verified who the caller is.
+ */
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const { data, error } = await supabase
+    .from('mega_customers')
+    .select('mg_role')
+    .eq('mg_pass_id', `pass:user:${req.userId}`)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (data?.mg_role !== 'admin') {
+    res.status(403).json({ error: 'Admins only' })
+    return
+  }
+
+  next()
+}
