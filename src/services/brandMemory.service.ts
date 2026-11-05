@@ -10,7 +10,7 @@ import {
 } from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
 import { BRAND_MEMORY_ID_PREFIX, cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
-import type { BrandMemoryScan, BrandMemoryVars } from '../types/brandMemory.types.js'
+import type { BrandMemoryScan, BrandMemoryScanAnswer, BrandMemoryVars } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
 import { copyStudioImage, deleteStudioImage } from './mma/mmaUploads.service.js'
 import { openAiImageTool } from './thirdPartyClients/openai.client.js'
@@ -25,7 +25,7 @@ async function scanPicture(url: string) {
       cdnImage(env.R2_PUBLIC_BASE_URL, url, 'product'),
       BRAND_MEMORY_SCAN_TOOL,
     )
-    return answer as BrandMemoryScan
+    return answer as BrandMemoryScanAnswer
   } catch (error) {
     logMmaError(error)
     return null
@@ -36,6 +36,9 @@ async function scanPicture(url: string) {
  * Saves pictures the user already put on R2 (up to five, the first being the
  * one scanned and the cover) as a new brand memory. A failed
  * scan still writes the row, as `error`, which the profile never lists.
+ * A Create's upload (`sourceUploadUrl`, the same as the one picture in `urls`)
+ * is copied for the memory once scanned; one the scanner reads as none of the
+ * four categories returns null, with no copy and no row.
  *
  * The frontend numbers `sortOrder` before uploading, so pictures added
  * together each get their own place however their scans finish.
@@ -59,7 +62,27 @@ export async function createBrandMemory(
 
   // The controller lets no empty list through, so there is always a first picture.
   const cover = urls[0]!
-  const scan = await scanPicture(cover)
+  const answer = await scanPicture(cover)
+
+  // When a brand memory is created from the create mode and not from user profile upload, if the picture is not from the 4 categories we just don't save it as a brand memory
+  if (sourceUploadUrl && answer && !answer.is_brand_asset) return null
+
+  // Everything but is_brand_asset, which is not kept in mg_mma_vars.
+  let scan: BrandMemoryScan | null = null
+  if (answer) {
+    scan = {
+      kind: answer.kind,
+      name: answer.name,
+      description: answer.description,
+      tags: answer.tags,
+      aliases: answer.aliases,
+      category: answer.category,
+    }
+  }
+
+  // A Create's upload gets its own copy, so deleting the memory never deletes the generation's picture.
+  // Made only now, once the scan has kept it, so a refused picture leaves no copy behind.
+  const savedUrls = sourceUploadUrl ? [await copyStudioImage(userId, cover)] : urls
 
   const id = randomUUID()
   const status = scan ? 'done' : 'error'
@@ -75,9 +98,9 @@ export async function createBrandMemory(
       mg_status: status,
       mg_type: 'image',
       mg_content_type: 'image',
-      mg_output_url: cover,
+      mg_output_url: savedUrls[0],
       mg_prompt: scan?.name ?? '',
-      mg_mma_vars: brandMemoryVars(scan, urls, sortOrder, at, sourceUploadUrl),
+      mg_mma_vars: brandMemoryVars(scan, savedUrls, sortOrder, at, sourceUploadUrl),
       mg_created_at: at,
       mg_updated_at: at,
     },
@@ -124,15 +147,10 @@ export async function saveUsedUploadsAsBrandMemories(userId: string, urls: strin
     urlsToSave.push(url)
   }
 
-  // One upload becomes one memory: its own copy of the picture, then the scan and the row.
-  const saveOne = async (url: string, sortOrder: number) => {
-    const copyUrl = await copyStudioImage(userId, url)
-    await createBrandMemory(userId, [copyUrl], sortOrder, url)
-  }
-
+  // One upload becomes one memory: the scan, then its own copy of the picture and the row.
   // All saved at the same time. Each place in the bar is chosen here, before the
   // scans start, so each memory keeps its place whichever scan finishes first.
-  const saving = urlsToSave.map((url, i) => saveOne(url, lastSortOrder + i + 1))
+  const saving = urlsToSave.map((url, i) => createBrandMemory(userId, [url], lastSortOrder + i + 1, url))
   const results = await Promise.allSettled(saving)
 
   // A failed one is only logged; the others are saved anyway.

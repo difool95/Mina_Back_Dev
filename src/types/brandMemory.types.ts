@@ -14,6 +14,11 @@ export interface BrandMemoryScan {
   category: BrandMemoryCategory
 }
 
+/** The scanner's whole answer: its reading, and whether the picture is one of the four categories at all. */
+export interface BrandMemoryScanAnswer extends BrandMemoryScan {
+  is_brand_asset: boolean
+}
+
 /** How a brand memory was made: added by the user, or saved from a picture a Create used. */
 export type BrandMemoryOrigin = 'upload' | 'create'
 
