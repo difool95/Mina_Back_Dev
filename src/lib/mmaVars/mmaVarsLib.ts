@@ -1,5 +1,5 @@
 import type { StillVarsSource } from '../../types/mma/mma.types.js'
-import { MMA_VARS_VERSION, STILL_RENDERERS } from '../constants.js'
+import { MMA_VARS_VERSION, STILL_GENERATION_COSTS, STILL_RENDERERS } from '../constants.js'
 
 /**
  * A done still's `mg_mma_vars`: the run's inputs, the steps' results and the
@@ -16,6 +16,7 @@ export function stillMmaVars(source: StillVarsSource) {
     meta: {
       flow: 'still_create',
       title: 'Image session',
+      billing: { matchas: STILL_GENERATION_COSTS[lane] },
       platform: request.platform,
       resolution,
       session_id: source.imageSessionId,
