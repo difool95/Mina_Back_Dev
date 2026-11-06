@@ -1,4 +1,12 @@
 import type { BrandMemoryOrigin, BrandMemoryScan, BrandMemoryVars } from '../../types/brandMemory.types.js'
+import type { CreateAssetItem } from '../../types/mma/mma.types.js'
+import { BRAND_MEMORY_SEMANTIC_TYPES } from '../constants.js'
+
+//This method checks if a picture step 1 read can become a brand memory: the user uploaded it in the scene, logo or product pill
+//(not a scene library pick, not a brand memory), the generation uses it, and step 1 read it as a logo, illustration, model or product.
+export function canBeBrandMemory(item: CreateAssetItem) {
+  return item.origin === 'upload' && item.use_in_generation && BRAND_MEMORY_SEMANTIC_TYPES.includes(item.semantic_type)
+}
 
 export const BRAND_MEMORY_SCANNER_PROMPT =
   'You are a product & design cataloguer for a beauty / fashion / perfumery brand studio. ' +
@@ -6,9 +14,6 @@ export const BRAND_MEMORY_SCANNER_PROMPT =
   '(C) a flat DESIGN / ARTWORK — a logo, wordmark, label design, packaging design, fashion illustration, print or pattern, ' +
   'poster, or typographic lockup (a 2D graphic, NOT a photograph of a 3D object). ' +
   'Answer through the save_brand_memory tool. ' +
-  'is_brand_asset: true when the clear hero subject is a logo, an illustration or other flat design, a model, or a product ' +
-  'or its packaging; false when it is none of these — a scene, landscape, interior, room, mood or inspiration shot, texture, ' +
-  'food, animal, screenshot, or a picture with no single clear subject. Fill every other field as best you can either way. ' +
   'kind: "product" for (A), "model" for (B), "design" for (C). ' +
   'name: a SHORT name, 1-3 words. For a PRODUCT, read the label / wordmark if visible (e.g. "Aurora Serum"). ' +
   'For a MODEL, a first name if a nameplate is visible, otherwise 1-2 words (e.g. "Red-coat model"). ' +
@@ -38,9 +43,8 @@ export const BRAND_MEMORY_SCAN_TOOL = {
     parameters: {
       type: 'object',
       additionalProperties: false,
-      required: ['is_brand_asset', 'kind', 'name', 'description', 'tags', 'aliases', 'category'],
+      required: ['kind', 'name', 'description', 'tags', 'aliases', 'category'],
       properties: {
-        is_brand_asset: { type: 'boolean' },
         kind: { type: 'string', enum: ['product', 'model', 'design'] },
         name: { type: 'string' },
         description: { type: 'string' },

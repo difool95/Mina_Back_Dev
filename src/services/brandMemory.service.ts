@@ -10,7 +10,7 @@ import {
 } from '../lib/constants.js'
 import { BRAND_MEMORY_SCAN_TOOL, BRAND_MEMORY_SCANNER_PROMPT, brandMemoryVars } from '../lib/brandMemory/brandMemoryLib.js'
 import { BRAND_MEMORY_ID_PREFIX, cdnImage } from '../lib/mmaStep1/mmaCreateAssetsLib.js'
-import type { BrandMemoryScan, BrandMemoryScanAnswer, BrandMemoryVars } from '../types/brandMemory.types.js'
+import type { BrandMemoryScan, BrandMemoryVars } from '../types/brandMemory.types.js'
 import { logMmaError } from './mma/mmaErrorLogger.service.js'
 import { copyStudioImage, deleteStudioImage } from './mma/mmaUploads.service.js'
 import { openAiImageTool } from './thirdPartyClients/openai.client.js'
@@ -25,7 +25,7 @@ async function scanPicture(url: string) {
       cdnImage(env.R2_PUBLIC_BASE_URL, url, 'product'),
       BRAND_MEMORY_SCAN_TOOL,
     )
-    return answer as BrandMemoryScanAnswer
+    return answer as BrandMemoryScan
   } catch (error) {
     logMmaError(error)
     return null
@@ -37,8 +37,8 @@ async function scanPicture(url: string) {
  * one scanned and the cover) as a new brand memory. A failed
  * scan still writes the row, as `error`, which the profile never lists.
  * A Create's upload (`sourceUploadUrl`, the same as the one picture in `urls`)
- * is copied for the memory once scanned; one the scanner reads as none of the
- * four categories returns null, with no copy and no row.
+ * is copied for the memory; which uploads come here is decided from step 1
+ * (canBeBrandMemory).
  *
  * The frontend numbers `sortOrder` before uploading, so pictures added
  * together each get their own place however their scans finish.
@@ -62,26 +62,9 @@ export async function createBrandMemory(
 
   // The controller lets no empty list through, so there is always a first picture.
   const cover = urls[0]!
-  const answer = await scanPicture(cover)
-
-  // When a brand memory is created from the create mode and not from user profile upload, if the picture is not from the 4 categories we just don't save it as a brand memory
-  if (sourceUploadUrl && answer && !answer.is_brand_asset) return null
-
-  // Everything but is_brand_asset, which is not kept in mg_mma_vars.
-  let scan: BrandMemoryScan | null = null
-  if (answer) {
-    scan = {
-      kind: answer.kind,
-      name: answer.name,
-      description: answer.description,
-      tags: answer.tags,
-      aliases: answer.aliases,
-      category: answer.category,
-    }
-  }
+  const scan = await scanPicture(cover)
 
   // A Create's upload gets its own copy, so deleting the memory never deletes the generation's picture.
-  // Made only now, once the scan has kept it, so a refused picture leaves no copy behind.
   const savedUrls = sourceUploadUrl ? [await copyStudioImage(userId, cover)] : urls
 
   const id = randomUUID()
@@ -147,7 +130,7 @@ export async function saveUsedUploadsAsBrandMemories(userId: string, urls: strin
     urlsToSave.push(url)
   }
 
-  // One upload becomes one memory: the scan, then its own copy of the picture and the row.
+  // One upload becomes one memory: the scan, its own copy of the picture, then the row.
   // All saved at the same time. Each place in the bar is chosen here, before the
   // scans start, so each memory keeps its place whichever scan finishes first.
   const saving = urlsToSave.map((url, i) => createBrandMemory(userId, [url], lastSortOrder + i + 1, url))

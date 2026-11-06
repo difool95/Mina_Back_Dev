@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COSTS, STILL_RENDERERS } from '../../lib/constants.js'
+import { canBeBrandMemory } from '../../lib/brandMemory/brandMemoryLib.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
 import { plainImage } from '../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import { stillMmaVars } from '../../lib/mmaVars/mmaVarsLib.js'
@@ -123,10 +124,9 @@ async function runStillPipeline(
   if (error) throw new Error(error.message)
   if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
 
-  // The pictures the user uploaded (not scene library picks, not brand memories) that step 1 kept become brand memories, beside the steps below rather than ahead of them:
-  //nothing waits on it.
-  const usedUploads = assets.output.items.filter((item) => item.origin === 'upload' && item.use_in_generation)
-  saveUsedUploadsAsBrandMemories(userId, usedUploads.map((item) => plainImage(item.url))).catch(logMmaError)
+  // The uploads that can become brand memories
+  const brandMemoryUploads = assets.output.items.filter(canBeBrandMemory)
+  saveUsedUploadsAsBrandMemories(userId, brandMemoryUploads.map((item) => plainImage(item.url))).catch(logMmaError)
   // The brand memories step 1 kept are counted as used, the same way: nothing waits on it.
   markBrandMemoriesUsed(userId, assets.output.used_memory_ids).catch(logMmaError)
 

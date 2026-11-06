@@ -93,6 +93,12 @@ export const BRAND_MEMORY_EXPIRY_DAYS = 90
 /** How long a brand memory can go unused (its `last_used_at`) before the daily sweep sets its `use_count` back to 0. */
 export const BRAND_MEMORY_USE_COUNT_RESET_DAYS = 7
 
+/**
+ * The step 1 `semantic_type`s a Create's upload is saved as a brand memory for:
+ * the four brand memory categories (logo, illustration, model, product).
+ */
+export const BRAND_MEMORY_SEMANTIC_TYPES = ['logo', 'other_design', 'person', 'product']
+
 /** The hour of the day, in TIME_ZONE, the brand memory sweep runs at. */
 export const BRAND_MEMORY_EXPIRY_HOUR = 9
 
