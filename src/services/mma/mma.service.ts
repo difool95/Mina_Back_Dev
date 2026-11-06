@@ -125,7 +125,8 @@ async function runStillPipeline(
   if (!assets.output) return fail('create_asset_intelligence_failed', assets.error)
 
   // The uploads that can become brand memories
-  const brandMemoryUploads = assets.output.items.filter(canBeBrandMemory)
+  const usingCategories = request.brandMemories.map((memory) => memory.category)
+  const brandMemoryUploads = assets.output.items.filter((item) => canBeBrandMemory(item, usingCategories))
   saveUsedUploadsAsBrandMemories(userId, brandMemoryUploads.map((item) => plainImage(item.url))).catch(logMmaError)
   // The brand memories step 1 kept are counted as used, the same way: nothing waits on it.
   markBrandMemoriesUsed(userId, assets.output.used_memory_ids).catch(logMmaError)

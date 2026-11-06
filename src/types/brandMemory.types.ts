@@ -33,6 +33,7 @@ export interface BrandMemoryItem {
 export interface PickedBrandMemoryPictures {
   id: string
   name: string
+  category: BrandMemoryCategory
   images: string[]
 }
 

@@ -1,11 +1,30 @@
-import type { BrandMemoryOrigin, BrandMemoryScan, BrandMemoryVars } from '../../types/brandMemory.types.js'
+import type {
+  BrandMemoryCategory,
+  BrandMemoryOrigin,
+  BrandMemoryScan,
+  BrandMemoryVars,
+} from '../../types/brandMemory.types.js'
 import type { CreateAssetItem } from '../../types/mma/mma.types.js'
 import { BRAND_MEMORY_SEMANTIC_TYPES } from '../constants.js'
 
 //This method checks if a picture step 1 read can become a brand memory: the user uploaded it in the scene, logo or product pill
 //(not a scene library pick, not a brand memory), the generation uses it, and step 1 read it as a logo, illustration, model or product.
-export function canBeBrandMemory(item: CreateAssetItem) {
-  return item.origin === 'upload' && item.use_in_generation && BRAND_MEMORY_SEMANTIC_TYPES.includes(item.semantic_type)
+//`usingCategories` are the categories of the brand memories this Create sent (the "Using" pill).
+export function canBeBrandMemory(item: CreateAssetItem, usingCategories: BrandMemoryCategory[]) {
+  //if the pill is not a user upload, or the pill is not used in generation, or the pill is not a logo, illustration, model or product, it cannot become a brand memory.
+  if (item.origin !== 'upload' || !item.use_in_generation) return false
+  if (!BRAND_MEMORY_SEMANTIC_TYPES.includes(item.semantic_type)) return false
+
+  // A model memory in use keeps the pills' models out of brand memory.
+  const isUsingModel = usingCategories.includes('model')
+  if (isUsingModel && item.semantic_type === 'person') return false
+
+  // A logo or illustration memory in use keeps the pills' logos and illustrations out.
+  const isUsingDesign = usingCategories.includes('logo') || usingCategories.includes('illustration')
+  const isDesign = item.semantic_type === 'logo' || item.semantic_type === 'other_design'
+  if (isUsingDesign && isDesign) return false
+
+  return true
 }
 
 export const BRAND_MEMORY_SCANNER_PROMPT =
