@@ -1,0 +1,20 @@
+import type { Request, Response } from 'express'
+import { z } from 'zod'
+
+import { env } from '../config/env.js'
+import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
+
+const tweakBody = z.object({
+  // One of our R2 files, never a URL of the browser's choosing, which the API would go and fetch.
+  imageUrl: z.string().startsWith(`${env.R2_PUBLIC_BASE_URL}/`),
+  brief: z.string().trim().min(4),
+  lane: z.enum(['niche', 'creative', 'creative_plus']),
+  aspectRatio: z.enum(['9:16', '16:9', '3:4', '4:3', '2:3', '3:2', '1:1']),
+  platform: z.enum(['tiktok', 'instagram-post', 'print', 'square']),
+})
+
+/** Tweak: charges the lane, starts the edit, and answers at once with the generation to poll. */
+export async function postTweak(req: Request, res: Response) {
+  // requireUser has already resolved this from the verified bearer token.
+  res.json(await startTweak(req.userId!, tweakBody.parse(req.body)))
+}

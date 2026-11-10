@@ -29,7 +29,8 @@ export function gptImageSize(ratio: AspectRatio, pixelBudget: number) {
   return width <= height ? `${shortPx}x${longPx}` : `${longPx}x${shortPx}`
 }
 
-export function nanoBananaInput(prompt: string, images: string[], ratio: AspectRatio): NanoBananaPayload['input'] {
+// With no ratio (an edit tool), Gemini keeps the input picture's shape.
+export function nanoBananaInput(prompt: string, images: string[], ratio?: AspectRatio): NanoBananaPayload['input'] {
   return {
     model: NANOBANANA.model,
     prompt,
@@ -44,14 +45,15 @@ export function nanoBananaInput(prompt: string, images: string[], ratio: AspectR
   }
 }
 
+// With no ratio (an edit tool), GPT Image picks the size closest to the input picture.
 export function gptImageInput(
   prompt: string,
   images: string[],
-  ratio: AspectRatio,
+  ratio: AspectRatio | undefined,
   engine: GptImageEngine,
 ): GptImagePayload['input'] {
   return {
-    size: gptImageSize(ratio, engine.pixelBudget),
+    size: ratio ? gptImageSize(ratio, engine.pixelBudget) : 'auto',
     model: engine.model,
     prompt,
     quality: engine.quality,

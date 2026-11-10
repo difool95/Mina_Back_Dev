@@ -451,7 +451,8 @@ interface StillGenerateInputBase {
   prompt: string
   /** The CDN URLs of the pictures step 1 kept, in the order step 3 sent them. */
   image_input: string[]
-  aspect_ratio: AspectRatio
+  //the aspect ratio is optional because in edit mode we follow the same ratio of the edited picture.
+  aspect_ratio?: AspectRatio
   output_format: 'png'
 }
 

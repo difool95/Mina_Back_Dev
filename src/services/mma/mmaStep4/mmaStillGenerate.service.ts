@@ -25,7 +25,7 @@ import { openAiImage } from '../../thirdPartyClients/openai.client.js'
 import { logMmaError } from '../mmaErrorLogger.service.js'
 
 /** A picture the engines take as bytes: unlike Claude, neither reads a URL itself. */
-async function readImage(url: string): Promise<ImageFile> {
+export async function readImage(url: string): Promise<ImageFile> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Could not read ${url} (${response.status})`)
 
@@ -39,12 +39,18 @@ async function readImage(url: string): Promise<ImageFile> {
  * through here. The name is picked before the upload because the metadata
  * carries the picture's own URL. A picture whose metadata cannot be written
  * is still stored, without it.
+ *
+ * `path` is the key without its extension: a still's by default, an edit tool's when it passes one.
  */
-async function storeStill({ bytes, contentType }: ImageFile, seo: MmaSeo) {
+export async function storeStill(
+  { bytes, contentType }: ImageFile,
+  seo: MmaSeo,
+  path = `${R2_STILLS_PREFIX}/${Date.now()}_${randomBytes(6).toString('hex')}`,
+) {
   const extension = UPLOAD_EXTENSIONS[contentType]
   if (!extension) throw new Error(`Cannot store a generated ${contentType || 'picture of unknown type'}`)
 
-  const key = `${R2_STILLS_PREFIX}/${Date.now()}_${randomBytes(6).toString('hex')}.${extension}`
+  const key = `${path}.${extension}`
   const url = `${env.R2_PUBLIC_BASE_URL}/${key}`
   const attemptedAt = new Date().toISOString()
 

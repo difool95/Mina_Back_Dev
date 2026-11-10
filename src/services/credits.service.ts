@@ -330,9 +330,18 @@ export async function addAutoRefillCredits(
  * costs) when its MMA cycle fails, once per generation: the ledger's
  * `mma_refund` row for it is what stops a second refund. The refunded lot
  * keeps the customer's current expiry.
+ *
+ * `kind` names what was charged: a Create (`mma`) or an edit tool
+ * (`fingertips`), which gives the refund its `<kind>_refund` type and reason.
  */
-export async function refundMmaCharge(passId: string, generationId: string, matchas: number) {
-  const refId = `mma:${generationId}`
+export async function refundMmaCharge(
+  passId: string,
+  generationId: string,
+  matchas: number,
+  kind: 'mma' | 'fingertips' = 'mma',
+) {
+  const refId = `${kind}:${generationId}`
+  const refType = `${kind}_refund`
 
   const { data: customer, error: customerError } = await supabase
     .from('mega_customers')
@@ -347,7 +356,7 @@ export async function refundMmaCharge(passId: string, generationId: string, matc
     .from('mega_generations')
     .select('mg_id')
     .eq('mg_record_type', 'credit_transaction')
-    .eq('mg_ref_type', 'mma_refund')
+    .eq('mg_ref_type', refType)
     .eq('mg_ref_id', refId)
     .limit(1)
     .maybeSingle()
@@ -363,10 +372,10 @@ export async function refundMmaCharge(passId: string, generationId: string, matc
   await recordTransaction({
     passId,
     delta: matchas,
-    reason: 'mma_refund',
-    refType: 'mma_refund',
+    reason: refType,
+    refType,
     refId,
-    source: 'mma',
+    source: kind,
     meta: { expires_at: customer.mg_expires_at, credits_after: creditsAfter, credits_before: creditsBefore },
     at,
   })
@@ -374,7 +383,7 @@ export async function refundMmaCharge(passId: string, generationId: string, matc
   const lot: CreditLot = {
     amount: matchas,
     ref_id: refId,
-    ref_type: 'mma_refund',
+    ref_type: refType,
     created_at: at,
     expires_at: customer.mg_expires_at,
   }

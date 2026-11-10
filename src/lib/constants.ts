@@ -1,3 +1,4 @@
+import type { FingertipsTool } from '../types/fingertips.types.js'
 import type { StillLane } from '../types/mma/mma.types.js'
 
 /** What one Create (still image) generation costs, in matchas, on each lane. */
@@ -156,6 +157,25 @@ export const EXCHANGE_RATES_URL = 'https://open.er-api.com/v6/latest/GBP'
 
 /** The R2 folder MMA's generated stills go in. */
 export const R2_STILLS_PREFIX = 'mma/still'
+
+/** The R2 folder the edit tools' pictures go in, one folder per tool (`fingertips/tweak/…`). */
+export const R2_FINGERTIPS_PREFIX = 'fingertips'
+
+/** The width Cloudflare resizes a picture to before an edit tool reads it. */
+export const FINGERTIPS_IMAGE_WIDTH = 2048
+
+/** Each edit tool's R2 folder, and whether it keeps the picture's transparency (`mg_mma_vars.inputs.preserve_alpha`). */
+export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserveAlpha: boolean }> = {
+  tweak: { folder: 'tweak', preserveAlpha: true },
+}
+
+/** The agent that reads the picture and writes Tweak's edit prompt. */
+export const TWEAK_PROMPTER = {
+  key: 'still_tweak_one_shot',
+  model: 'claude-opus-5-5',
+  maxTokens: 4000,
+  effort: 'high',
+} as const
 
 /** How every MMA call caches its prompt, stored beside the request. The token counts come from the response. */
 export const MMA_PROMPT_CACHE = {

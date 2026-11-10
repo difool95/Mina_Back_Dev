@@ -55,7 +55,7 @@ async function insertStep(
 }
 
 /** Updates the generation row the steps belong to. */
-async function updateGeneration(generationId: string, fields: object) {
+export async function updateGeneration(generationId: string, fields: object) {
   const { error } = await supabase
     .from('mega_generations')
     .update({ ...fields, mg_updated_at: new Date().toISOString() })
@@ -68,7 +68,7 @@ async function updateGeneration(generationId: string, fields: object) {
  * Marks the step the pipeline is starting, for the studio to choose what Mina
  * types meanwhile. Only logged when it fails: the picture matters more.
  */
-const markStatus = (generationId: string, status: MmaStatus) =>
+export const markStatus = (generationId: string, status: MmaStatus) =>
   updateGeneration(generationId, { mg_mma_status: status }).catch(logMmaError)
 
 /**

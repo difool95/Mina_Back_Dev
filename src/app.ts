@@ -7,6 +7,7 @@ import { generationRouter } from './routes/generation.routes.js'
 import { brandMemoryRouter } from './routes/brandMemory.routes.js'
 import { checkoutRouter } from './routes/checkout.routes.js'
 import { creditsRouter } from './routes/credits.routes.js'
+import { fingertipsRouter } from './routes/fingertips.routes.js'
 import { mmaRouter } from './routes/mma.routes.js'
 import { promptFileRouter } from './routes/promptFile.routes.js'
 
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/api/prompt-files', promptFileRouter)
   app.use('/api/brand-memories', brandMemoryRouter)
   app.use('/api/generations', generationRouter)
+  app.use('/api/fingertips', fingertipsRouter)
 
   // Must stay last, after every route it is meant to catch.
   app.use(errorHandler)
