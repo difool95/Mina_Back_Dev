@@ -168,6 +168,7 @@ export const FINGERTIPS_IMAGE_WIDTH = 2048
 export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserveAlpha: boolean }> = {
   tweak: { folder: 'tweak', preserveAlpha: true },
   vectorize: { folder: 'vectorize', preserveAlpha: false },
+  no_subject: { folder: 'no_subject', preserveAlpha: true },
 }
 
 /**
@@ -176,6 +177,7 @@ export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserve
  * one picture is counted at in `mg_cost_data`.
  */
 export const VECTORIZE = {
+  provider: 'replicate',
   model: 'recraft-ai/recraft-vectorize',
   matchas: 0.1,
   usd: 0.01,
@@ -183,7 +185,25 @@ export const VECTORIZE = {
   seoText: 'Vector illustration',
 } as const
 
+/** Remove Subject: Bria's erase_foreground erases the main subject and fills its place, for a flat price per picture ($0.05 on Bria's price list). */
+export const NO_SUBJECT = {
+  provider: 'bria',
+  model: 'bria/image/edit/erase_foreground',
+  matchas: 0.1,
+  usd: 0.05,
+  /** What the SEO writer writes the SEO from. */
+  seoText: 'Scene without its subject',
+} as const
+
+/** The edit tools sold at a flat price per picture rather than by lane. */
+export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT>> = {
+  vectorize: VECTORIZE,
+  no_subject: NO_SUBJECT,
+}
+
 export const REPLICATE_API_URL = 'https://api.replicate.com/v1'
+
+export const BRIA_API_URL = 'https://engine.prod.bria-api.com/v2'
 
 //This variable is the number of milliseconds to wait between each poll to Replicate for the status of a generation. It is set to 2000ms, which is 2 seconds.
 export const REPLICATE_POLL_MS = 2000

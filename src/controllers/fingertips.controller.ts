@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { env } from '../config/env.js'
+import { startNoSubject } from '../services/fingertips/fingertipsNoSubject.service.js'
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
 import { startVectorize, startVectorizeAll } from '../services/fingertips/fingertipsVectorize.service.js'
 
@@ -32,4 +33,9 @@ export async function postVectorizeAll(req: Request, res: Response) {
     .extend({ imageUrls: z.array(tweakBody.shape.imageUrl).min(1) })
 
   res.json(await startVectorizeAll(req.userId!, body.parse(req.body)))
+}
+
+/** Remove Subject: the same body as Vectorize. */
+export async function postNoSubject(req: Request, res: Response) {
+  res.json(await startNoSubject(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
 }

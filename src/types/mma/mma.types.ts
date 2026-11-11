@@ -1,3 +1,5 @@
+import type { FingertipsTool } from '../fingertips.types.js'
+
 import type { PickedBrandMemoryPictures } from '../brandMemory.types.js'
 
 /** Where the output is meant to go, read off the ratio the user picked in the studio. */
@@ -593,8 +595,8 @@ export interface MmaSpend {
   image:
     | { engine: 'nanobanana'; model: string; usage: GeminiUsage }
     | { engine: 'openai'; model: string; size: string; usage: GptImageUsage }
-    // An edit tool on Replicate, priced per picture rather than per token.
-    | { engine: 'replicate'; tool: string; model: string; usd: number }
+    // An edit tool on Replicate or Bria, priced per picture rather than per token.
+    | { engine: 'replicate' | 'bria'; tool: FingertipsTool; model: string; usd: number }
     | null
 }
 
