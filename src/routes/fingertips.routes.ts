@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import { postNoSubject, postTweak, postVectorize, postVectorizeAll } from '../controllers/fingertips.controller.js'
+import { postNoSubject, postNoSubjectAll, postTweak, postVectorize, postVectorizeAll } from '../controllers/fingertips.controller.js'
 import { requireUser } from '../middlewares/auth.middleware.js'
 import { mmaErrorLogger } from '../middlewares/error.middleware.js'
 
@@ -11,6 +11,7 @@ fingertipsRouter.post('/tweak', requireUser, postTweak)
 fingertipsRouter.post('/vectorize', requireUser, postVectorize)
 fingertipsRouter.post('/vectorize-all', requireUser, postVectorizeAll)
 fingertipsRouter.post('/no-subject', requireUser, postNoSubject)
+fingertipsRouter.post('/no-subject-all', requireUser, postNoSubjectAll)
 
 // Last, so it sees the error of every edit route above.
 fingertipsRouter.use(mmaErrorLogger)

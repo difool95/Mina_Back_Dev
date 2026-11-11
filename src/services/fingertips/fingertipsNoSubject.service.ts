@@ -29,3 +29,21 @@ export function startNoSubject(userId: string, request: FingertipsRequest) {
     return { url, seo, provenance }
   })
 }
+
+//Remove all Subject: the same Remove Subject on every picture of the carousel, each with its own charge and generation row.
+//One after another rather than all at once, so each charge reads the balance the previous one wrote.
+export async function startNoSubjectAll(
+  userId: string,
+  { imageUrls, ...request }: Omit<FingertipsRequest, 'imageUrl'> & { imageUrls: string[] },
+) {
+  const generationIds: string[] = []
+  let credits = 0
+
+  for (const imageUrl of imageUrls) {
+    const started = await startNoSubject(userId, { ...request, imageUrl })
+    generationIds.push(started.generationId)
+    credits = started.credits
+  }
+
+  return { generationIds, credits }
+}
