@@ -170,6 +170,7 @@ export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserve
   vectorize: { folder: 'vectorize', preserveAlpha: false },
   no_subject: { folder: 'no_subject', preserveAlpha: true },
   no_background: { folder: 'no_background', preserveAlpha: true },
+  expand: { folder: 'expand', preserveAlpha: true },
 }
 
 /**
@@ -206,11 +207,22 @@ export const NO_BACKGROUND = {
   seoText: 'Subject cut out on a transparent background',
 } as const
 
+/** Expand: Bria's expand grows the picture to the ratio picked in the Expand bar, generating what was outside it, for a flat price per picture ($0.032 on Bria's price list). */
+export const EXPAND = {
+  provider: 'bria',
+  model: 'bria/image/edit/expand',
+  matchas: 0.1,
+  usd: 0.032,
+  /** What the SEO writer writes the SEO from. */
+  seoText: 'Scene expanded to a new aspect ratio',
+} as const
+
 /** The edit tools sold at a flat price per picture rather than by lane. */
-export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT | typeof NO_BACKGROUND>> = {
+export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT | typeof NO_BACKGROUND | typeof EXPAND>> = {
   vectorize: VECTORIZE,
   no_subject: NO_SUBJECT,
   no_background: NO_BACKGROUND,
+  expand: EXPAND,
 }
 
 export const REPLICATE_API_URL = 'https://api.replicate.com/v1'

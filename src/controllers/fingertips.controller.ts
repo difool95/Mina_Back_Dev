@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { env } from '../config/env.js'
+import { startExpand } from '../services/fingertips/fingertipsExpand.service.js'
 import { startNoBackground, startNoBackgroundAll } from '../services/fingertips/fingertipsNoBackground.service.js'
 import { startNoSubject, startNoSubjectAll } from '../services/fingertips/fingertipsNoSubject.service.js'
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
@@ -62,4 +63,9 @@ export async function postNoBackgroundAll(req: Request, res: Response) {
     .extend({ imageUrls: z.array(fingertipsBody.shape.imageUrl).min(1) })
 
   res.json(await startNoBackgroundAll(req.userId!, body.parse(req.body)))
+}
+
+/** Expand: the same body as Remove BG, its `aspectRatio` being the ratio picked in the Expand bar. */
+export async function postExpand(req: Request, res: Response) {
+  res.json(await startExpand(req.userId!, fingertipsBody.omit({ brief: true }).parse(req.body)))
 }
