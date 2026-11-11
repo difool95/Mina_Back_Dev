@@ -171,7 +171,11 @@ export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserve
   no_subject: { folder: 'no_subject', preserveAlpha: true },
   no_background: { folder: 'no_background', preserveAlpha: true },
   expand: { folder: 'expand', preserveAlpha: true },
+  eraser: { folder: 'eraser', preserveAlpha: true },
 }
+
+/** Erase's masks, beside the edit tools' folders: `fingertips/mask/<id>_mask_image.png`. */
+export const FINGERTIPS_MASK_FOLDER = 'mask'
 
 /**
  * Vectorize: Recraft on Replicate turns a picture into an SVG, for a flat
@@ -217,12 +221,24 @@ export const EXPAND = {
   seoText: 'Scene expanded to a new aspect ratio',
 } as const
 
+export const ERASE = {
+  provider: 'bria',
+  model: 'bria/image/edit/erase',
+  matchas: 0.2,
+  usd: 0.04,
+  /** What the SEO writer writes the SEO from. */
+  seoText: 'Selected objects erased from the scene',
+} as const
+
 /** The edit tools sold at a flat price per picture rather than by lane. */
-export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT | typeof NO_BACKGROUND | typeof EXPAND>> = {
+export const FINGERTIPS_FLAT_TOOLS: Partial<
+  Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT | typeof NO_BACKGROUND | typeof EXPAND | typeof ERASE>
+> = {
   vectorize: VECTORIZE,
   no_subject: NO_SUBJECT,
   no_background: NO_BACKGROUND,
   expand: EXPAND,
+  eraser: ERASE,
 }
 
 export const REPLICATE_API_URL = 'https://api.replicate.com/v1'

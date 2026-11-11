@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { env } from '../config/env.js'
+import { startErase } from '../services/fingertips/fingertipsErase.service.js'
 import { startExpand } from '../services/fingertips/fingertipsExpand.service.js'
 import { startNoBackground, startNoBackgroundAll } from '../services/fingertips/fingertipsNoBackground.service.js'
 import { startNoSubject, startNoSubjectAll } from '../services/fingertips/fingertipsNoSubject.service.js'
@@ -68,4 +69,11 @@ export async function postNoBackgroundAll(req: Request, res: Response) {
 /** Expand: the same body as Remove BG, its `aspectRatio` being the ratio picked in the Expand bar. */
 export async function postExpand(req: Request, res: Response) {
   res.json(await startExpand(req.userId!, fingertipsBody.omit({ brief: true }).parse(req.body)))
+}
+
+/** Erase: the same body as Remove BG, with the mask drawn in the browser as a PNG data URL. */
+export async function postErase(req: Request, res: Response) {
+  const body = fingertipsBody.omit({ brief: true }).extend({ mask: z.string().startsWith('data:image/png;base64,') })
+
+  res.json(await startErase(req.userId!, body.parse(req.body)))
 }

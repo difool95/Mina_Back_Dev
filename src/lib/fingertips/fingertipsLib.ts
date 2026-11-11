@@ -55,10 +55,16 @@ export function fingertipsResizedImageUrl(publicBaseUrl: string, url: string) {
 }
 
 //This method is used to generate the mma vars for fingertips tools, it takes the input url, model key and preserve alpha flag and returns the mma vars object.
-export function fingertipsMmaVars(inputUrl: string, modelKey: FingertipsTool, preserveAlpha: boolean): FingertipsMmaVars {
+//Erase also passes its mask's URL, kept as `inputs.mask_image`.
+export function fingertipsMmaVars(
+  inputUrl: string,
+  modelKey: FingertipsTool,
+  preserveAlpha: boolean,
+  maskUrl?: string,
+): FingertipsMmaVars {
   return {
     assets: { product_image_url: inputUrl },
-    inputs: { image: inputUrl, preserve_alpha: preserveAlpha },
+    inputs: { image: inputUrl, preserve_alpha: preserveAlpha, ...(maskUrl && { mask_image: maskUrl }) },
     modelKey,
   }
 }
