@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { env } from '../config/env.js'
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
-import { startVectorize } from '../services/fingertips/fingertipsVectorize.service.js'
+import { startVectorize, startVectorizeAll } from '../services/fingertips/fingertipsVectorize.service.js'
 
 const tweakBody = z.object({
   // One of our R2 files, never a URL of the browser's choosing, which the API would go and fetch.
@@ -23,4 +23,13 @@ export async function postTweak(req: Request, res: Response) {
 /** Vectorize: the same body without the note. */
 export async function postVectorize(req: Request, res: Response) {
   res.json(await startVectorize(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
+}
+
+/** Vectorize All: the same body, with every picture of the carousel instead of one. */
+export async function postVectorizeAll(req: Request, res: Response) {
+  const body = tweakBody
+    .omit({ brief: true, imageUrl: true })
+    .extend({ imageUrls: z.array(tweakBody.shape.imageUrl).min(1) })
+
+  res.json(await startVectorizeAll(req.userId!, body.parse(req.body)))
 }
