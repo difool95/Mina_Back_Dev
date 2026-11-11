@@ -7,7 +7,7 @@ import { startNoSubject, startNoSubjectAll } from '../services/fingertips/finger
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
 import { startVectorize, startVectorizeAll } from '../services/fingertips/fingertipsVectorize.service.js'
 
-const tweakBody = z.object({
+const fingertipsBody = z.object({
   // One of our R2 files, never a URL of the browser's choosing, which the API would go and fetch.
   imageUrl: z.string().startsWith(`${env.R2_PUBLIC_BASE_URL}/`),
   brief: z.string().trim().min(4),
@@ -19,38 +19,38 @@ const tweakBody = z.object({
 /** Tweak: charges the lane, starts the edit, and answers at once with the generation to poll. */
 export async function postTweak(req: Request, res: Response) {
   // requireUser has already resolved this from the verified bearer token.
-  res.json(await startTweak(req.userId!, tweakBody.parse(req.body)))
+  res.json(await startTweak(req.userId!, fingertipsBody.parse(req.body)))
 }
 
 /** Vectorize: the same body without the note. */
 export async function postVectorize(req: Request, res: Response) {
-  res.json(await startVectorize(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
+  res.json(await startVectorize(req.userId!, fingertipsBody.omit({ brief: true }).parse(req.body)))
 }
 
 /** Vectorize All: the same body, with every picture of the carousel instead of one. */
 export async function postVectorizeAll(req: Request, res: Response) {
-  const body = tweakBody
+  const body = fingertipsBody
     .omit({ brief: true, imageUrl: true })
-    .extend({ imageUrls: z.array(tweakBody.shape.imageUrl).min(1) })
+    .extend({ imageUrls: z.array(fingertipsBody.shape.imageUrl).min(1) })
 
   res.json(await startVectorizeAll(req.userId!, body.parse(req.body)))
 }
 
 /** Remove Subject: the same body as Vectorize. */
 export async function postNoSubject(req: Request, res: Response) {
-  res.json(await startNoSubject(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
+  res.json(await startNoSubject(req.userId!, fingertipsBody.omit({ brief: true }).parse(req.body)))
 }
 
 /** Remove all Subject: the same body, with every picture of the carousel instead of one. */
 export async function postNoSubjectAll(req: Request, res: Response) {
-  const body = tweakBody
+  const body = fingertipsBody
     .omit({ brief: true, imageUrl: true })
-    .extend({ imageUrls: z.array(tweakBody.shape.imageUrl).min(1) })
+    .extend({ imageUrls: z.array(fingertipsBody.shape.imageUrl).min(1) })
 
   res.json(await startNoSubjectAll(req.userId!, body.parse(req.body)))
 }
 
 /** Remove BG: the same body as Remove Subject. */
 export async function postNoBackground(req: Request, res: Response) {
-  res.json(await startNoBackground(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
+  res.json(await startNoBackground(req.userId!, fingertipsBody.omit({ brief: true }).parse(req.body)))
 }
