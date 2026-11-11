@@ -169,6 +169,7 @@ export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserve
   tweak: { folder: 'tweak', preserveAlpha: true },
   vectorize: { folder: 'vectorize', preserveAlpha: false },
   no_subject: { folder: 'no_subject', preserveAlpha: true },
+  no_background: { folder: 'no_background', preserveAlpha: true },
 }
 
 /**
@@ -195,10 +196,21 @@ export const NO_SUBJECT = {
   seoText: 'Scene without its subject',
 } as const
 
+/** Remove BG: Bria's remove_background cuts the subject out on a transparent background, for a flat price per picture ($0.018 on Bria's price list). */
+export const NO_BACKGROUND = {
+  provider: 'bria',
+  model: 'bria/image/edit/remove_background',
+  matchas: 0.1,
+  usd: 0.018,
+  /** What the SEO writer writes the SEO from. */
+  seoText: 'Subject cut out on a transparent background',
+} as const
+
 /** The edit tools sold at a flat price per picture rather than by lane. */
-export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT>> = {
+export const FINGERTIPS_FLAT_TOOLS: Partial<Record<FingertipsTool, typeof VECTORIZE | typeof NO_SUBJECT | typeof NO_BACKGROUND>> = {
   vectorize: VECTORIZE,
   no_subject: NO_SUBJECT,
+  no_background: NO_BACKGROUND,
 }
 
 export const REPLICATE_API_URL = 'https://api.replicate.com/v1'

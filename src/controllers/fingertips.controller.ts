@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { env } from '../config/env.js'
+import { startNoBackground } from '../services/fingertips/fingertipsNoBackground.service.js'
 import { startNoSubject, startNoSubjectAll } from '../services/fingertips/fingertipsNoSubject.service.js'
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
 import { startVectorize, startVectorizeAll } from '../services/fingertips/fingertipsVectorize.service.js'
@@ -47,4 +48,9 @@ export async function postNoSubjectAll(req: Request, res: Response) {
     .extend({ imageUrls: z.array(tweakBody.shape.imageUrl).min(1) })
 
   res.json(await startNoSubjectAll(req.userId!, body.parse(req.body)))
+}
+
+/** Remove BG: the same body as Remove Subject. */
+export async function postNoBackground(req: Request, res: Response) {
+  res.json(await startNoBackground(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
 }
