@@ -167,7 +167,29 @@ export const FINGERTIPS_IMAGE_WIDTH = 2048
 /** Each edit tool's R2 folder, and whether it keeps the picture's transparency (`mg_mma_vars.inputs.preserve_alpha`). */
 export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserveAlpha: boolean }> = {
   tweak: { folder: 'tweak', preserveAlpha: true },
+  vectorize: { folder: 'vectorize', preserveAlpha: false },
 }
+
+/**
+ * Vectorize: Recraft on Replicate turns a picture into an SVG, for a flat
+ * price per picture. Replicate's answer carries no cost, so `usd` is what
+ * one picture is counted at in `mg_cost_data`.
+ */
+export const VECTORIZE = {
+  model: 'recraft-ai/recraft-vectorize',
+  matchas: 0.1,
+  usd: 0.01,
+  /** The SEO is not read off the picture: it only carries Mina's tag, built from this text. */
+  seoText: 'Vector illustration',
+} as const
+
+export const REPLICATE_API_URL = 'https://api.replicate.com/v1'
+
+//This variable is the number of milliseconds to wait between each poll to Replicate for the status of a generation. It is set to 2000ms, which is 2 seconds.
+export const REPLICATE_POLL_MS = 2000
+
+/** What a generated picture is stored under, by type: the upload types, plus the SVG Vectorize makes. */
+export const GENERATED_EXTENSIONS: Record<string, string> = { ...UPLOAD_EXTENSIONS, 'image/svg+xml': 'svg' }
 
 /** The agent that reads the picture and writes Tweak's edit prompt. */
 export const TWEAK_PROMPTER = {

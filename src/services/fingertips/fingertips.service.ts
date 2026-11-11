@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { FINGERTIPS_TOOLS, R2_FINGERTIPS_PREFIX, STILL_GENERATION_COSTS, STILL_RENDERERS } from '../../lib/constants.js'
+import { FINGERTIPS_TOOLS, R2_FINGERTIPS_PREFIX, STILL_GENERATION_COSTS, STILL_RENDERERS, VECTORIZE } from '../../lib/constants.js'
 import { fingertipsMmaVars } from '../../lib/fingertips/fingertipsLib.js'
 import { costData } from '../../lib/mmaCost/mmaCostLib.js'
 import { gptImageInput, nanoBananaInput } from '../../lib/mmaStep4/mmaStillGenerateLib.js'
@@ -45,12 +45,14 @@ export async function startFingertips(
 
   // Checked before anything is written, so a refused edit leaves no rows behind.
   const creditsBefore = Number(customer.mg_credits ?? 0)
-  const cost = STILL_GENERATION_COSTS[request.lane]
+  // Vectorize has its own flat price; Tweak costs what its lane costs.
+  const cost = tool === 'vectorize' ? VECTORIZE.matchas : STILL_GENERATION_COSTS[request.lane]
   if (creditsBefore < cost) throw new Error('Not enough matcha')
 
   const at = new Date().toISOString()
   const generationId = randomUUID()
-  const creditsAfter = creditsBefore - cost
+  // To the cent, so a 0.1 charge never leaves a balance like 4.8999999.
+  const creditsAfter = Math.round((creditsBefore - cost) * 100) / 100
 
   await recordTransaction({
     passId,
@@ -79,8 +81,8 @@ export async function startFingertips(
       mg_mma_mode: 'fingertips',
       mg_mma_status: 'progressing',
       mg_status: 'progressing',
-      mg_provider: request.lane === 'niche' ? 'gemini' : 'openai',
-      mg_model: STILL_RENDERERS[request.lane].model,
+      mg_provider: tool === 'vectorize' ? 'replicate' : request.lane === 'niche' ? 'gemini' : 'openai',
+      mg_model: tool === 'vectorize' ? VECTORIZE.model : STILL_RENDERERS[request.lane].model,
       mg_mma_vars: fingertipsMmaVars(request.imageUrl, tool, FINGERTIPS_TOOLS[tool].preserveAlpha),
       mg_output_url: '',
       mg_meta: {},

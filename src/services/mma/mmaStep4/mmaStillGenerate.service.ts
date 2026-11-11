@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 
 import { env } from '../../../config/env.js'
-import { R2_STILLS_PREFIX, UPLOAD_EXTENSIONS } from '../../../lib/constants.js'
+import { R2_STILLS_PREFIX, GENERATED_EXTENSIONS } from '../../../lib/constants.js'
 import { stepTiming } from '../../../lib/date.js'
 import { embedXmp, xmpPacket } from '../../../lib/mmaSeo/mmaSeoLib.js'
 import {
@@ -47,7 +47,7 @@ export async function storeStill(
   seo: MmaSeo,
   path = `${R2_STILLS_PREFIX}/${Date.now()}_${randomBytes(6).toString('hex')}`,
 ) {
-  const extension = UPLOAD_EXTENSIONS[contentType]
+  const extension = GENERATED_EXTENSIONS[contentType]
   if (!extension) throw new Error(`Cannot store a generated ${contentType || 'picture of unknown type'}`)
 
   const key = `${path}.${extension}`

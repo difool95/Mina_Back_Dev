@@ -366,7 +366,8 @@ export async function refundMmaCharge(
 
   const at = new Date().toISOString()
   const creditsBefore = Number(customer.mg_credits ?? 0)
-  const creditsAfter = creditsBefore + matchas
+  //we added this line to round the credits after to 2 decimal places.
+  const creditsAfter = Math.round((creditsBefore + matchas) * 100) / 100
   const lots = Array.isArray(customer.mg_credit_lots) ? (customer.mg_credit_lots as CreditLot[]) : []
 
   await recordTransaction({

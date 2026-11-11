@@ -1,7 +1,7 @@
 import type { AspectRatio, MmaPlatform, MmaProvenance, MmaSeo, MmaSpend, StillLane } from './mma/mma.types.js'
 
-/** An edit tool of the studio's right panel, by its `mg_mma_vars.modelKey`. Only Tweak is built so far. */
-export type FingertipsTool = 'tweak'
+/** An edit tool of the studio's right panel, by its `mg_mma_vars.modelKey`. Tweak and Vectorize so far. */
+export type FingertipsTool = 'tweak' | 'vectorize'
 
 /** What every edit tool is sent: the picture, and the lane that prices and renders it. */
 export interface FingertipsRequest {

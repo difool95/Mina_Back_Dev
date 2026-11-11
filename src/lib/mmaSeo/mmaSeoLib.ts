@@ -230,5 +230,15 @@ export function embedXmp(bytes: Buffer, contentType: string, xmp: string) {
     return Buffer.concat([bytes.subarray(0, insertAt), segment, bytes.subarray(insertAt)])
   }
 
+  //This is only for SVGs, which are text: the packet goes in a <metadata> element right inside the opening <svg> tag.
+  if (contentType === 'image/svg+xml') {
+    // An SVG is text: the packet goes in a <metadata> element right inside the opening <svg> tag.
+    const svg = bytes.toString('utf8')
+    const afterOpening = svg.indexOf('>', svg.indexOf('<svg')) + 1
+    if (!afterOpening) throw new Error('No <svg> element to embed metadata in')
+
+    return Buffer.from(`${svg.slice(0, afterOpening)}<metadata>${xmp}</metadata>${svg.slice(afterOpening)}`, 'utf8')
+  }
+
   throw new Error(`Cannot embed metadata in ${contentType}`)
 }

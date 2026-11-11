@@ -593,6 +593,8 @@ export interface MmaSpend {
   image:
     | { engine: 'nanobanana'; model: string; usage: GeminiUsage }
     | { engine: 'openai'; model: string; size: string; usage: GptImageUsage }
+    // An edit tool on Replicate, priced per picture rather than per token.
+    | { engine: 'replicate'; tool: string; model: string; usd: number }
     | null
 }
 
@@ -612,7 +614,7 @@ export interface CostProvider {
 
 /** `mg_cost_data` of a generation: what it cost, what it sold for, and the margins. */
 export interface MmaCostData {
-  provider: 'nanobanana' | 'openai'
+  provider: 'nanobanana' | 'openai' | `fingertips_${string}`
   fallbacks: string[]
   providers: CostProvider[]
   /** Null when nothing was sold: the matcha was refunded. */

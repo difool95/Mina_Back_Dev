@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { env } from '../config/env.js'
 import { startTweak } from '../services/fingertips/fingertipsTweak.service.js'
+import { startVectorize } from '../services/fingertips/fingertipsVectorize.service.js'
 
 const tweakBody = z.object({
   // One of our R2 files, never a URL of the browser's choosing, which the API would go and fetch.
@@ -17,4 +18,9 @@ const tweakBody = z.object({
 export async function postTweak(req: Request, res: Response) {
   // requireUser has already resolved this from the verified bearer token.
   res.json(await startTweak(req.userId!, tweakBody.parse(req.body)))
+}
+
+/** Vectorize: the same body without the note. */
+export async function postVectorize(req: Request, res: Response) {
+  res.json(await startVectorize(req.userId!, tweakBody.omit({ brief: true }).parse(req.body)))
 }

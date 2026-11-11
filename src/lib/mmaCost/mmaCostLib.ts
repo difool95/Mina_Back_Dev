@@ -17,6 +17,7 @@ import {
   MMA_COSTS,
   OPENAI_CHAT_PRICES,
   STILL_GENERATION_COSTS,
+  VECTORIZE,
 } from '../constants.js'
 
 const PER_MILLION = 1_000_000
@@ -86,6 +87,8 @@ function costProviders(spend: MmaSpend): CostProvider[] {
     providers.push({ usd: round(geminiImageUsd(image.model, image.usage)), label: `NanoBanana Pro (${image.model})`, detail: '4K still', provider: 'nanobanana' })
   } else if (image?.engine === 'openai') {
     providers.push({ usd: round(gptImageUsd(image.model, image.usage)), label: `GPT Image (${image.model})`, detail: `${image.size} still`, provider: 'openai' })
+  } else if (image?.engine === 'replicate') {
+    providers.push({ usd: round(image.usd), label: `Fingertips (${image.tool})`, detail: '', provider: `fingertips_${image.tool}` })
   }
 
   const byModel = new Map<string, { usd: number; count: number }>()
@@ -113,7 +116,9 @@ export function costData(lane: StillLane, spend: MmaSpend, isCharged: boolean, r
   const mmaCost = round(providers.filter((entry) => entry !== imageProvider).reduce((sum, entry) => sum + entry.usd, 0))
   const apiCost = round(modelCost + mmaCost)
 
-  const matchas = isCharged ? STILL_GENERATION_COSTS[lane] : 0
+  // Vectorize (on Replicate) has its own price and provider; a lane's engine is priced by the lane.
+  const isVectorize = spend.image?.engine === 'replicate'
+  const matchas = isCharged ? (isVectorize ? VECTORIZE.matchas : STILL_GENERATION_COSTS[lane]) : 0
   const unitPrice = round(MATCHA_GBP * rates.usdPerGbp)
   const bulkUnitPrice = round(MATCHA_BULK_GBP * rates.usdPerGbp)
   const sellPrice = round(unitPrice * matchas)
@@ -123,7 +128,7 @@ export function costData(lane: StillLane, spend: MmaSpend, isCharged: boolean, r
   const fixedOverhead = round(MMA_COSTS.fixedMonthlyTotalUsd / rates.generationsPerMonth)
 
   return {
-    provider: lane === 'niche' ? 'nanobanana' : 'openai',
+    provider: isVectorize ? 'fingertips_vectorize' : lane === 'niche' ? 'nanobanana' : 'openai',
     fallbacks: [],
     providers,
     margin_pct: ratio(profit, sellPrice),
