@@ -29,3 +29,21 @@ export function startNoBackground(userId: string, request: FingertipsRequest) {
     return { url, seo, provenance }
   })
 }
+
+//Remove all BG: the same Remove BG on every picture of the carousel, each with its own charge and generation row.
+//One after another rather than all at once, so each charge reads the balance the previous one wrote.
+export async function startNoBackgroundAll(
+  userId: string,
+  { imageUrls, ...request }: Omit<FingertipsRequest, 'imageUrl'> & { imageUrls: string[] },
+) {
+  const generationIds: string[] = []
+  let credits = 0
+
+  for (const imageUrl of imageUrls) {
+    const started = await startNoBackground(userId, { ...request, imageUrl })
+    generationIds.push(started.generationId)
+    credits = started.credits
+  }
+
+  return { generationIds, credits }
+}
