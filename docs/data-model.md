@@ -47,7 +47,7 @@ flowchart LR
 |---|---|
 | `mg_generation_id` | the generation's uuid |
 | `mg_session_id` | the image session's id |
-| `mg_mma_mode` | `still` |
+| `mg_mma_mode` | `still`. An edit tool's generation has `fingertips` instead, with a few columns that differ: see [features/fingertips.md](features/fingertips.md#the-generation-row). |
 | `mg_status` | `progressing`, then `done` or `error`. `deleted` once the user deletes it. |
 | `mg_mma_status` | `progressing`, `scanning`, `prompting`, `generating`, then `done` or `error`. `deleted` once the user deletes it. See [mma-pipeline.md](mma-pipeline.md#status-the-studio-polls). |
 | `mg_prompt` | empty, then step 3's `clean_prompt` |
@@ -93,6 +93,8 @@ Common columns: `mg_delta` (signed amount), `mg_reason`, `mg_ref_type`, `mg_ref_
 | Auto-refill | `stripe-auto-refill` | `stripe_auto_refill` | the Stripe invoice id | `stripe` | + pack size |
 | Create charge | `mma_still_<lane>` | `mma_charge` | `mma:<generationId>` | `mma` | minus the lane cost |
 | Create refund | `mma_refund` | `mma_refund` | `mma:<generationId>` | `mma` | + the lane cost |
+| Edit tool charge | `fingertips_pool_draw` | `fingertips_charge` | `fingertips:<generationId>` | `fingertips` | minus the tool's price |
+| Edit tool refund | `fingertips_refund` | `fingertips_refund` | `fingertips:<generationId>` | `fingertips` | + the tool's price |
 | Expiry | `expired` | `expiration` | `exp_<passId>_<ISO time>` | `system` | minus the whole balance |
 
 `(mg_ref_type, mg_ref_id)` is what makes a purchase, refill or refund happen only once: each function looks for an existing row with that pair before writing. The signup bonus looks for a `free_signup` row of the same pass id instead. The rules are in [features/credits-and-billing.md](features/credits-and-billing.md).

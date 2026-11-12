@@ -8,6 +8,7 @@ flowchart LR
   Studio -->|"own rows and public reads"| DB[("Supabase")]
   API --> DB
   API --> AI["Anthropic, OpenAI, Gemini"]
+  API --> Edit["Bria, Replicate<br/>(edit tools)"]
   API --> R2["Cloudflare R2"]
   API --> Pay["Stripe, Shopify"]
 ```
@@ -57,6 +58,8 @@ Things to know before the first run:
 | `ANTHROPIC_API_KEY` | Claude, MMA steps 1 and 3. | required |
 | `OPENAI_API_KEY` | GPT Image, the SEO writer and the brand memory scanner. | required |
 | `GEMINI_API_KEY` | NanoBanana Pro on the niche lane. | required |
+| `BRIAKEY` | Bria, the edit tools No Subject, No Background, Expand and Erase ([features/fingertips.md](features/fingertips.md#third-parties)). | required |
+| `REPLICATE_API_TOKEN` | Replicate, the SVG edit tool (Recraft vectorize). | required |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Writes and deletes files in Cloudflare R2. | required |
 | `R2_PUBLIC_BASE_URL` | Public base URL of the bucket. Also how the API checks that a URL in a request is one of its own files. | URL |
 | `PROMPT_FILE_KEY` | The AES-256 key that seals `.mina` prompt files. | 64 hex characters (32 bytes) |
@@ -77,6 +80,7 @@ Adding a variable means three edits: `.env`, `.env.example` and the schema in `e
 | Brand memory | A saved picture of a product, a model, a logo or an illustration. The user ticks it in the studio's "Using" pill to send it with a Create. Stored as a `product` row. See [features/brand-memory.md](features/brand-memory.md). |
 | Pills | The studio's "+" pills a picture is added under: `scene`, `logo`, `product` (`UploadKind`). MMA calls them `scene`, `logo` and `featured_asset` (`PillHint`). A pill is only a hint: step 1 decides what each picture really is. The "Using" pill holds the ticked brand memories. |
 | Mina brief | The short lines Mina types in the studio while a generation runs. The studio picks them from the generation's `mg_mma_status`, which the pipeline sets step by step. Not to be confused with the user's brief: the `brief` field of the request, which is what the user typed with the locked strip as its last line. |
+| Fingertips | The studio's edit tools (Tweak, SVG, No Subject, No Background, Expand, Erase). Each edit is a new generation with `mg_mma_mode: "fingertips"`, charged on its own. See [features/fingertips.md](features/fingertips.md). |
 | Prompt file | A `.mina` file that holds a generation's inputs, encrypted, so it can be reopened in any studio. See [features/prompt-files.md](features/prompt-files.md). |
 
 ## Reading order
@@ -88,6 +92,7 @@ Adding a variable means three edits: `.env`, `.env.example` and the schema in `e
 5. [jobs.md](jobs.md): the scheduled work started by `server.ts`.
 6. Features:
    - [features/brand-memory.md](features/brand-memory.md)
+   - [features/fingertips.md](features/fingertips.md)
    - [features/credits-and-billing.md](features/credits-and-billing.md)
    - [features/uploads-and-r2.md](features/uploads-and-r2.md)
    - [features/prompt-files.md](features/prompt-files.md)

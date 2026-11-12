@@ -13,7 +13,9 @@ flowchart TD
   json --> pf["/api/prompt-files<br/>promptFileRouter"]
   json --> bm["/api/brand-memories<br/>brandMemoryRouter"]
   json --> gen["/api/generations<br/>generationRouter"]
+  json --> ft["/api/fingertips<br/>fingertipsRouter + mmaErrorLogger"]
   checkout --> err["errorHandler<br/>500 { error }"]
+  ft --> err
   credits --> err
   mma --> err
   pf --> err
@@ -54,6 +56,12 @@ Anything a controller or service throws, a zod validation failure included, reac
 | `POST /api/prompt-files/import` | `requireUser` | `postPromptFileImport` | `importPromptFile` |
 | `POST /api/brand-memories` | `requireUser` | `postBrandMemory` | `createBrandMemory` |
 | `POST /api/generations/:generationId/restore` | `requireUser`, `requireAdmin` | `postRestoreGeneration` | `restoreGeneration` |
+| `POST /api/fingertips/tweak` | `requireUser` | `postTweak` | `startTweak` |
+| `POST /api/fingertips/vectorize`, `/vectorize-all` | `requireUser` | `postVectorize`, `postVectorizeAll` | `startVectorize`, `startVectorizeAll` |
+| `POST /api/fingertips/no-subject`, `/no-subject-all` | `requireUser` | `postNoSubject`, `postNoSubjectAll` | `startNoSubject`, `startNoSubjectAll` |
+| `POST /api/fingertips/no-background`, `/no-background-all` | `requireUser` | `postNoBackground`, `postNoBackgroundAll` | `startNoBackground`, `startNoBackgroundAll` |
+| `POST /api/fingertips/expand` | `requireUser` | `postExpand` | `startExpand` |
+| `POST /api/fingertips/erase` | `requireUser` | `postErase` | `startErase` |
 
 The sections below give each one's body and response. "R2 URL" means a string that starts with `R2_PUBLIC_BASE_URL/`: the API only accepts its own files, never a URL of the browser's choosing.
 
@@ -224,3 +232,38 @@ Admins only. Brings back a generation a user deleted, while it is still inside t
 - No body.
 - Throws when the row does not exist, is not deleted, or was deleted more than `GENERATION_PURGE_DAYS` (30) days ago.
 - Response: `{ "restored": "<generationId>" }`.
+
+## Fingertips
+
+Router [`fingertips.routes.ts`](../src/routes/fingertips.routes.ts), controller [`fingertips.controller.ts`](../src/controllers/fingertips.controller.ts), services in [`services/fingertips/`](../src/services/fingertips/). Like `/api/mma`, these routes pass through `mmaErrorLogger`. The whole flow is in [features/fingertips.md](features/fingertips.md).
+
+Every route takes the same base body:
+
+```json
+{
+  "imageUrl": "<R2 URL>",
+  "lane": "niche",
+  "aspectRatio": "9:16",
+  "platform": "tiktok"
+}
+```
+
+| Field | Rule |
+|---|---|
+| `imageUrl` | R2 URL. The picture to edit. |
+| `lane` | `niche`, `creative` or `creative_plus`. Prices and renders a Tweak; the other tools only carry it. |
+| `aspectRatio` | `9:16`, `16:9`, `3:4`, `4:3`, `2:3`, `3:2` or `1:1`. Used for the SEO, except on `/expand`, where it is the ratio to expand to. |
+| `platform` | `tiktok`, `instagram-post`, `print` or `square`. For the SEO. |
+
+What each route adds or changes:
+
+| Route | Body | Response |
+|---|---|---|
+| `/tweak` | adds `brief`: the user's note, at least 4 characters after trimming | `{ generationId, credits }` |
+| `/vectorize`, `/no-subject`, `/no-background`, `/expand` | the base body | `{ generationId, credits }` |
+| `/vectorize-all`, `/no-subject-all`, `/no-background-all` | `imageUrls` (at least one R2 URL) instead of `imageUrl` | `{ generationIds: [...], credits }` |
+| `/erase` | adds `mask`: a PNG data URL starting with `data:image/png;base64,` (white is erased, black is kept) | `{ generationId, credits }` |
+
+- Each throws `Not enough matcha` before writing anything when the balance is below the price.
+- `credits` is the balance after the charge. The edit itself runs in the background. The studio follows its row's `mg_mma_status` in Supabase, as for a Create.
+- `/erase`'s body goes through the global `express.json()`, which accepts up to 100 KB. A black and white mask is far below that.
