@@ -27,8 +27,12 @@ export interface TweakRequest extends FingertipsRequest {
 
 /** The `mg_mma_vars` of an edit tool's generation: its input picture, never its output. */
 export interface FingertipsMmaVars {
+  /** The profile's Type, as a Create's `still` or `video`. */
+  mode: 'fingertips'
   assets: { product_image_url: string }
   inputs: { image: string; preserve_alpha: boolean; mask_image?: string }
+  /** What the edit was charged, read by the profile's details as a Create's is. */
+  meta: { billing: { matchas: number } }
   modelKey: FingertipsTool
 }
 

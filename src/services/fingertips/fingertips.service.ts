@@ -84,7 +84,7 @@ export async function startFingertips(
       mg_status: 'progressing',
       mg_provider: flat ? flat.provider : request.lane === 'niche' ? 'gemini' : 'openai',
       mg_model: flat ? flat.model : STILL_RENDERERS[request.lane].model,
-      mg_mma_vars: fingertipsMmaVars(request.imageUrl, tool, FINGERTIPS_TOOLS[tool].preserveAlpha, request.maskUrl),
+      mg_mma_vars: fingertipsMmaVars(request.imageUrl, tool, FINGERTIPS_TOOLS[tool].preserveAlpha, cost, request.maskUrl),
       mg_output_url: '',
       mg_meta: {},
       mg_type: 'image',
