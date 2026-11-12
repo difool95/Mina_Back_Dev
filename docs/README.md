@@ -64,8 +64,6 @@ Things to know before the first run:
 | `R2_PUBLIC_BASE_URL` | Public base URL of the bucket. Also how the API checks that a URL in a request is one of its own files. | URL |
 | `PROMPT_FILE_KEY` | The AES-256 key that seals `.mina` prompt files. | 64 hex characters (32 bytes) |
 
-Heads up: `.env.example` only lists `PORT`, `NODE_ENV`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `CORS_ORIGIN` today. Every other row above is also required by `env.ts`, so take the full list from the schema.
-
 Adding a variable means three edits: `.env`, `.env.example` and the schema in `env.ts`.
 
 ## Glossary
