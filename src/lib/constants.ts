@@ -164,6 +164,9 @@ export const R2_FINGERTIPS_PREFIX = 'fingertips'
 /** The width Cloudflare resizes a picture to before an edit tool reads it. */
 export const FINGERTIPS_IMAGE_WIDTH = 2048
 
+/** The JPEG quality of the full-size copy Expand sends to Bria (the other tools use the 2048 px copy at 88). */
+export const FINGERTIPS_EXPAND_QUALITY = 90
+
 /** Each edit tool's R2 folder, and whether it keeps the picture's transparency (`mg_mma_vars.inputs.preserve_alpha`). */
 export const FINGERTIPS_TOOLS: Record<FingertipsTool, { folder: string; preserveAlpha: boolean }> = {
   tweak: { folder: 'tweak', preserveAlpha: true },

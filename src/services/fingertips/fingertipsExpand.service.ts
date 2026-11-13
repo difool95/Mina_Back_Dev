@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js'
 import { EXPAND } from '../../lib/constants.js'
-import { fingertipsResizedImageUrl } from '../../lib/fingertips/fingertipsLib.js'
+import { fingertipsFullSizeImageUrl } from '../../lib/fingertips/fingertipsLib.js'
 import type { FingertipsRequest } from '../../types/fingertips.types.js'
 import { markStatus } from '../mma/mma.service.js'
 import { writeSeo } from '../mma/mmaSeo.service.js'
@@ -14,7 +14,8 @@ export function startExpand(userId: string, request: FingertipsRequest) {
   return startFingertips(userId, 'expand', request, async (run) => {
     markStatus(run.generationId, 'generating')
     const resultUrl = await briaEdit('image/edit/expand', {
-      image: fingertipsResizedImageUrl(env.R2_PUBLIC_BASE_URL, request.imageUrl),
+      // The original size rather than the 2048 px copy, so the expanded picture is as big as Bria allows.
+      image: fingertipsFullSizeImageUrl(env.R2_PUBLIC_BASE_URL, request.imageUrl),
       aspect_ratio: request.aspectRatio,
     })
     run.spend.image = { engine: 'bria', tool: 'expand', model: EXPAND.model, usd: EXPAND.usd }

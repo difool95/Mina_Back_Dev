@@ -1,5 +1,5 @@
 import type { FingertipsMmaVars, FingertipsTool } from '../../types/fingertips.types.js'
-import { FINGERTIPS_IMAGE_WIDTH } from '../constants.js'
+import { FINGERTIPS_EXPAND_QUALITY, FINGERTIPS_IMAGE_WIDTH } from '../constants.js'
 import { plainImage } from '../mmaStep1/mmaCreateAssetsLib.js'
 
 /** The system prompt of Tweak's prompter (`still_tweak_one_shot`): it reads the picture and the user's note, and writes the edit prompt. */
@@ -52,6 +52,14 @@ export function fingertipsResizedImageUrl(publicBaseUrl: string, url: string) {
   const path = plainImage(url).slice(publicBaseUrl.length + 1)
 
   return `${publicBaseUrl}/cdn-cgi/image/width=${FINGERTIPS_IMAGE_WIDTH},fit=scale-down,quality=88,format=jpeg/${path}`
+}
+
+//Expand's copy of the picture: its original size (no width), as a JPEG at FINGERTIPS_EXPAND_QUALITY, so Bria grows the picture from all of its pixels.
+//Bria keeps the result within its 25M pixel limit itself, shrinking the input first when the expanded canvas would go over it.
+export function fingertipsFullSizeImageUrl(publicBaseUrl: string, url: string) {
+  const path = plainImage(url).slice(publicBaseUrl.length + 1)
+
+  return `${publicBaseUrl}/cdn-cgi/image/quality=${FINGERTIPS_EXPAND_QUALITY},format=jpeg/${path}`
 }
 
 //This method is used to generate the mma vars for fingertips tools, it takes the input url, model key and preserve alpha flag and returns the mma vars object.
