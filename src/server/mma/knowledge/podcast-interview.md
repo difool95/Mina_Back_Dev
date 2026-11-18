@@ -2,7 +2,7 @@
 
 Use this mode for studio podcasts, video podcasts, founder interviews, conversational YouTube shows, remote-style discussions staged in one room, and short social clips extracted from a longer conversation. A believable podcast is not two people sitting beside decorative microphones. It is a stable spatial system: seats, eyelines, microphones, camera coverage, room acoustics, conversational turn-taking and edit logic all remain coherent.
 
-Follow `seedance-prompting.md` first for blueprint order, media tags, dialogue timing, audio binding, negatives and continuity.
+Follow the Seedance guides sent with this one (`seedance-common.md` and the version guide, `seedance-2.0.md` or `seedance-2.5.md`) first for blueprint order, media tags, dialogue timing, audio binding, negatives and continuity.
 
 ## 1. Select the format
 
@@ -73,7 +73,7 @@ Podcast close-ups usually look just off lens toward the conversation partner—n
 
 - hands, notebook, object or control surface;
 - never replaces essential speaker coverage during important dialogue;
-- use during listening, pauses or voice-over.
+- use during listening, pauses, voice-over, or with the speaker's own voice running on off-screen.
 
 ## 5. Switching and edit logic
 
@@ -304,7 +304,7 @@ Audio. @Image 1 and @Image 2 each have a separate visible dynamic-microphone tra
 
 3.70–5.20s — CAMERA A, wide two-shot for the transition and thinking pause. Audio continues seamlessly. @Image 2 inhales quietly, glances down at the table for 0.45 seconds and presses his left thumb once against the watch strap. @Image 1 waits with a small neutral nod after the inhale, not before it. Neither water glass moves. Microphone arms and cables remain identical. The room is quiet except for one faint chair-fabric creak.
 
-5.20–12.70s — CAMERA C, guest close-up held through the main thought. @Image 2 says, “Honestly, when everyone was busy… and nothing important was getting finished.” He begins softly on “Honestly,” pauses naturally for 0.35 seconds after “busy,” looks briefly toward the warm lamp as if searching for the words, then returns his gaze to @Image 1. On “nothing important,” his eyebrows draw together asymmetrically and his right hand rises once into the lower frame, palm half-open, before settling back to the chair arm. His mic stays 10 cm from his mouth; when he leans back 3 cm during the pause, the voice loses a small amount of proximity warmth, then returns when he leans forward. No on-camera listener mouth movement is visible.
+5.20–12.70s — CAMERA C, guest close-up held through the main thought. @Image 2 says, “Honestly, when everyone was busy, and nothing important was getting finished.” He begins softly on “Honestly,” pauses naturally for 0.35 seconds after “busy,” looks briefly toward the warm lamp as if searching for the words, then returns his gaze to @Image 1. On “nothing important,” his eyebrows draw together asymmetrically and his right hand rises once into the lower frame, palm half-open, before settling back to the chair arm. His mic stays 10 cm from his mouth; when he leans back 3 cm during the pause, the voice loses a small amount of proximity warmth, then returns when he leans forward. No on-camera listener mouth movement is visible.
 
 12.70–15.00s — CAMERA A, wide for the landing and reaction. @Image 2 finishes, “That was the warning.” He lets the sentence fall in pitch and exhales, no smile. @Image 1’s reaction arrives a fraction after the final word: one slow nod and a quiet, closed-mouth “mm” recorded on her own mic at lower level. She does not jump into another question. At 14.60s the guest’s fingertips touch his water glass but do not lift it before the clip ends. Hold the room for the final fraction of a second.
 

@@ -2,7 +2,7 @@
 
 Use this mode for spontaneous public interviews, vox pops, man-on-the-street questions, couple reactions, event-floor interviews and creator-led street content. A believable street interview is a negotiated space between interviewer, participant, camera, microphone and an environment that does not stop for them.
 
-Follow `seedance-prompting.md` first for blueprint structure, tags, dialogue timing, negatives and reference limits.
+Follow the Seedance guides sent with this one (`seedance-common.md` and the version guide, `seedance-2.0.md` or `seedance-2.5.md`) first for blueprint structure, tags, dialogue timing, negatives and reference limits.
 
 ## 1. Pick the street-interview register
 
@@ -202,7 +202,7 @@ Suggested coverage:
 2. medium interviewer question;
 3. respondent close or over-shoulder answer;
 4. couple reaction/two-shot;
-5. product/result insert only during silence or voice-over.
+5. product/result insert during silence, voice-over, or with the speaker's own voice running on off-screen.
 
 Keep eyelines and screen direction consistent. Do not cross the axis randomly.
 
@@ -290,11 +290,11 @@ Camera. A fourth person films on a rear-main-camera phone from about 1.6 metres 
 
 Microphone and sound. One handheld omnidirectional reporter mic in @Image 1’s right hand, foam windscreen fitted. The interviewer speaks with the mic 12–15 cm below her own mouth, then physically extends it toward the answering person, stopping 15–22 cm below their mouth. Voices become clearer only after the mic arrives. Light wind from camera-left moves hair and coat edges and creates only a low protected rustle, not heavy buffeting. The nearest speaker dominates; partner, pedestrians and traffic sit at realistic distances. Small handling thump occurs only when @Image 1 changes grip.
 
-0.00–3.20s — The recording starts after permission has already been given. @Image 1 faces the couple, not the camera, with the mic beneath her own mouth and @Image 3 held casually at waist level. She asks, “Okay—smell this and tell me what you think it costs.” Natural lively British delivery, but not shouting. On “smell this” she raises @Image 3 to chest level. The couple listen with mouths closed; the woman looks at the bottle, the man glances briefly at his partner. At the final word “costs,” @Image 1 begins lowering the mic and turning her right shoulder toward them. SFX: her voice close and present, shoes on damp pavement, low traffic wash, distant crossing beep.
+0.00–3.20s — The recording starts after permission has already been given. @Image 1 faces the couple, not the camera, with the mic beneath her own mouth and @Image 3 held casually at waist level. She asks, “Okay, smell this and tell me what you think it costs.” Natural lively British delivery, but not shouting. On “smell this” she raises @Image 3 to chest level. The couple listen with mouths closed; the woman looks at the bottle, the man glances briefly at his partner. At the final word “costs,” @Image 1 begins lowering the mic and turning her right shoulder toward them. SFX: her voice close and present, shoes on damp pavement, low traffic wash, distant crossing beep.
 
-3.20–6.10s — @Image 1 finishes extending the mic toward the woman respondent while holding @Image 3 under the woman’s nose with her left hand. The respondent leans forward slightly, inhales once, then leans back before speaking. The mic stops about 18 cm below her mouth. She pauses 0.4 seconds, eyes lifting as she thinks, and says, “Honestly? Like… a hundred and twenty?” Her first “Honestly?” begins just as the mic settles and is slightly quieter than the rest. The interviewer and man keep mouths closed. A pedestrian passes in the mid-background without reacting.
+3.20–6.10s — @Image 1 finishes extending the mic toward the woman respondent while holding @Image 3 under the woman’s nose with her left hand. The respondent leans forward slightly, inhales once, then leans back before speaking. The mic stops about 18 cm below her mouth. She pauses 0.4 seconds, eyes lifting as she thinks, and says, “Honestly? Like, a hundred and twenty?” Her first “Honestly?” begins just as the mic settles and is slightly quieter than the rest. The interviewer and man keep mouths closed. A pedestrian passes in the mid-background without reacting.
 
-6.10–9.50s — Before the interviewer can reply, the man leans 15 cm toward the existing microphone and interrupts with a half-laugh: “No way—eighty, max.” Because he enters the pickup zone, “No way” becomes suddenly clearer and slightly louder; a gentle limiter catches the laugh without distortion. The interviewer pivots the mic only a few degrees toward him rather than teleporting it. The woman turns to him with an amused asymmetric smile and says nothing. @Image 1 lowers the bottle back to mid-chest, maintaining its identity.
+6.10–9.50s — Before the interviewer can reply, the man leans 15 cm toward the existing microphone and interrupts with a half-laugh: “No way, eighty, max.” Because he enters the pickup zone, “No way” becomes suddenly clearer and slightly louder; a gentle limiter catches the laugh without distortion. The interviewer pivots the mic only a few degrees toward him rather than teleporting it. The woman turns to him with an amused asymmetric smile and says nothing. @Image 1 lowers the bottle back to mid-chest, maintaining its identity.
 
 9.50–12.40s — @Image 1 brings the microphone back toward herself in a visible 0.35-second arc. A cyclist passes behind from camera-right to left; tyre hiss on wet road rises and recedes while the camera operator makes a small delayed correction to keep the cyclist from obscuring the respondents. @Image 1 says, “It’s twenty-five.” Her delivery is simple and slightly amused, not a sales reveal. The couple’s mouths stay closed until the line is complete; both eyebrows lift, but their reactions are different in timing.
 

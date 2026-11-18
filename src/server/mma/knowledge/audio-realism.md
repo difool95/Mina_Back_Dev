@@ -24,7 +24,7 @@ Audio Realism | Off-frame environment (use only when clearly implied) | Prompt f
 
 Audio Realism | Foreground and hero action (use only for realistically audible actions) | Prompt formula: [Visible action or material contact] produces [sound texture] exactly when the physical action begins, with a natural [attack, body and decay] shaped by [material pair, distance and room]. Quieter movements remain inaudible or naturally masked when the recording position could not capture them.
 
-Audio Realism | Voice perspective (use only when speech exists) | Prompt formula: [Speaker profile and delivery] recorded through [microphone and relationship to speaker]. Clarity, warmth and room contribution change naturally when the speaker [moves closer, turns away or goes off-axis]. Only the active speaker lip-syncs, and the voice remains inside the visible environment rather than sounding pasted over it.
+Audio Realism | Voice perspective (use only when speech exists) | Prompt formula: [Speaker profile and delivery] recorded through [microphone and relationship to speaker]. Clarity, warmth and room contribution change naturally when the speaker [moves closer, turns away or goes off-axis]. Only the active speaker lip-syncs, and the voice remains inside the scene's own room sound rather than sounding pasted over it, including when it runs on off-screen over an insert.
 
 Audio Realism | Dynamics and imperfections (select only one or two relevant traits) | Prompt formula: Apply subtle [automatic gain / compression / limiting / wind response / handling noise / codec texture] appropriate to [device and action]. Imperfections are brief, source-linked and restrained; no aggressive denoising, pumping, chopped breath tails, constant fake hiss or unjustified clipping.
 

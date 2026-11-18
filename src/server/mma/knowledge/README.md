@@ -4,7 +4,7 @@ This folder is a modular prompting system for Mina. Each request should load the
 
 ## Recommended loading order
 
-1. `seedance-prompting.md` — global Seedance structure, references, timing, brand-bleed protection and negatives.
+1. `seedance-common.md` — the Seedance rules shared by every version, plus ONE version guide: `seedance-2.0.md` or `seedance-2.5.md` (references, timing, durations and ceilings for that version). `seedance-cinematic.md` rides on top for a cinematic, commercial or short-drama target, on any version.
 2. One primary format file:
    - `ugc-best-practices.md`
    - `unboxing-asmr.md`
@@ -32,7 +32,7 @@ Use this priority order:
 
 1. Explicit user brief and attached references.
 2. Platform/provider hard constraints.
-3. `seedance-prompting.md` global rules.
+3. `seedance-common.md` and the version guide (`seedance-2.0.md` / `seedance-2.5.md`).
 4. Primary format grammar.
 5. Realism corrections.
 6. Camera and style flourishes.

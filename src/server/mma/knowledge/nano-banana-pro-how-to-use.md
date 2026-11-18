@@ -115,7 +115,13 @@ Name one motivated source before adding fills:
 
 > Daylight from the window on camera-left is the only dominant source; weak neutral room bounce lifts the opposite cheek.
 
-**Scene-edit exception:** when the user supplies a base scene and asks to keep it, do not design, infer, name, move or add lighting. Preserve the base image's exact brightness map, highlights, shadows and falloff. The inserted subject receives only that existing illumination; never import a reference image's key, fill, bounce, rim, glow or studio light.
+**Scene-edit rule (rewritten Oct 23 after the "fake photoshop" Niche edit):** when the user supplies a base scene, the light is **stated once, positively, as it is** — never designed, never moved, and never written as a ban. Read the photo like a photographer and say what is there:
+
+> The scene is lit by a single direct on-camera flash: hard frontal light, flat bright highlights, fast falloff into a black background, warm colour cast, visible film grain. Every inserted element is photographed by this same flash and shares the same grain, softness and colour cast.
+
+Then give each inserted element its **response** to that light, once: *the flash leaves one small hard specular on the glass and a tight dark shadow on the blouse directly behind the bottle.*
+
+Why: Nano Banana does not process a ban the way a diffusion negative does. "Add no light: no key, fill, bounce, rim, glow" puts glow, rim and bounce in context and leaves the inserted object with no lighting instruction at all, so it falls back on its reference packshot's clean studio light. The result is the composite look: a studio-lit bottle with a glow halo on a grainy flash snapshot. Google's own prompting guide says the same two things: use positive framing ("empty street", not "no cars") and describe the lighting explicitly.
 
 This is stronger than:
 
@@ -134,6 +140,8 @@ Attach the constraint to the thing it protects:
 > The product is the only branded object; no logo, label, lettering or readable symbol appears on the cup, wall, clothing, furniture or background.
 
 A detached paragraph containing fifty generic negatives is weaker than a few precise locks placed beside the relevant instruction.
+
+**The Avoid line, when one ships at all:** at most five items, each a concrete object that must not appear (a second bottle, a redesigned label, lettering on another object, a changed costume, extra or malformed fingers). **Never a light word** (glow, halo, rim, bounce, bloom, flare, sparkle, glint, relighting, studio light) and **never a failure word** (pasted, floating, composited, cutout, plastic, airbrushed): naming them is how they arrive. Protect those things inline, positively.
 
 ---
 
@@ -245,6 +253,21 @@ An edit prompt is not a new art-direction brief. Every repeated scene detail bec
 4. remove all style synonyms;
 5. make a second edit afterward rather than combining two changes.
 
+### Inserting a handheld object: size, occlusion, light response, plain words
+
+> Her right hand holds a single PESCA perfume at chest height beside the bow tie. The bottle is about 12 cm tall, roughly the length of her hand from wrist to fingertips. Her fingers wrap around the front of the bottle with real contact pressure, thumb on the near side, partially covering the lower edge of the label; the bottle sits in front of her blouse and hides part of the frill. It is a tall hexagonal frosted-glass bottle with a soft peach-to-coral gradient, a coral hexagonal cap and a recessed coral panel carrying a small lotus emblem and the vertical word PESCA. The flash leaves one small hard specular on the glass and a tight dark shadow on the blouse directly behind it; the bottle carries the same grain and slight softness as the rest of the frame. Everything else in the frame stays exactly as it is.
+>
+> Avoid: second perfume, redesigned label, PESCA lettering on any other object, extra or malformed fingers, changed costume.
+
+- **A physical scale anchor** (centimetres, or relative to the hand) — without it the object arrives at its reference's size.
+- **An occlusion sentence** — what the fingers cover, what the object hides — without it the object sits on top of the body.
+- **The object's response to the scene's light** — one specular, one contact shadow, the same grain.
+- **No packshot vocabulary:** not *flacon, hero, embossed, label toward the camera, true handheld size, premium finish*. Those words pull the render toward an advertisement, which is exactly the pasted look.
+
+### Costume beats beauty
+
+On a recast, makeup, face paint, masks and prosthetics worn in the base scene are wardrobe and stay on the new face. Describe identity as bone structure, skin tone, hair colour and texture, build and hands. A "detailed beauty face" (glossy lips, groomed brows, flawless skin) in the same prompt as clown face paint cannot be rendered: the model drops the paint.
+
 ---
 
 ## D. Text and typography
@@ -333,6 +356,12 @@ Repair:
 Repair:
 
 > Restore the previous off-centre crop exactly: subject right of centre, original negative space on camera-left, original headroom and shoulder crop. Change no other element. Do not reframe, straighten or rebalance the composition.
+
+### Failure: the product looks pasted on (studio sheen, glow halo, wrong size, no grip)
+
+Diagnosis: the prompt banned light words instead of stating the scene's light; the Avoid line was long; the object had no size or occlusion; the brief asked for two edits in one pass. Repair, as a second pass on the current image:
+
+> Edit the scene image: the bottle already in her right hand is re-photographed by the scene's own direct on-camera flash — hard frontal light, warm cast, visible grain — about 12 cm tall, her fingers wrapping its front and the thumb covering the lower edge of the label, one small hard specular on the glass and a tight dark shadow on the blouse behind it, the same grain and softness as the rest of the frame. Everything else stays exactly as it is.
 
 ### Failure: hand anatomy broke during product placement
 

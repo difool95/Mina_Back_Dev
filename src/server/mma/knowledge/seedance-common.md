@@ -1,7 +1,7 @@
 # Seedance — the rules that hold on EVERY version (2.0 and 2.5)
 
 This file is the shared contract. It is routed for every Seedance generation
-regardless of version. The version-specific file (`seedance-prompting.md` for
+regardless of version. The version-specific file (`seedance-2.0.md` for
 2.0, `seedance-2.5.md` for 2.5) then adds the ceilings, durations and features
 that differ.
 

@@ -89,9 +89,9 @@ Example of needed Physical description:
 
 **Openings that work (mid-thought, no hook):**
 - "Okay so I keep forgetting to film this and it's actually driving me mad."
-- "Right — I genuinely have to hide this perfume from my mum at this point."
+- "Right. I genuinely have to hide this perfume from my mum at this point."
 - "I genuinely just got stopped in Tesco."
-- "Sorry — you walked past me and I had to refresh it before you asked." *(this one is the higher-energy variant — use sparingly)*
+- "Sorry, you walked past me and I had to refresh it before you asked." *(this one is the higher-energy variant — use sparingly)*
 - "So I've been on a secret which I cannot gatekeep from you any longer." *(if going more scripted)*
 
 **Openings that don't work (too ad-like):**
@@ -106,13 +106,13 @@ Example of needed Physical description:
 
 *Compliment story.* "Was queuing up to pay and this woman behind me just leaned in and asked what I was wearing." Delivered like a small annoyance, not a flex.
 
-*Family anecdote.* "My mum came in mine yesterday, found this on the side, sprayed it like six times — half the bottle's just gone." Mock-exasperated.
+*Family anecdote.* "My mum came in mine yesterday, found this on the side, sprayed it like six times, half the bottle's just gone." Mock-exasperated.
 
 *Longevity anecdote.* "I sprayed it on my hoodie three days ago, washed it, came out the machine still smelling like it." Delivered as genuine disbelief.
 
 **Closes that work (soft trail-off):**
 - "Yeah. I'm obsessed."
-- "So… yeah, this is my third bottle now."
+- "So. Yeah. This is my third bottle now."
 - "Anyway. Happens like every week now."
 - "Honestly, I'm not even surprised anymore."
 
@@ -121,7 +121,7 @@ Example of needed Physical description:
 - "Yellow basket, half price, be quick."
 - Any imperative-mood CTA delivered with lift in the voice.
 
-**Timing math:** Natural British female TikTok pace is 3.5–4 words per second. At 15s, that's roughly 55–65 words. At 30s, roughly 105–120 words. Don't overpack.
+**Timing math:** A quick creator talks at about 2.5 words per second and never above 2.8, breaths included (measured creator channels average about 2.8 before the edit removes the gaps). At 15s, that's roughly 35–40 words. At 30s, roughly 70–80 words. The energy comes from jump cuts that remove the breath and the gap between sentences, not from talking faster: past about 3 words a second the voice turns robotic and the lip sync breaks. Don't overpack.
 
 When starting a new series, generate the character once with Nano Banana Pro at 2k or 4k in 9:16, then pass the resulting `image_id` as `start_image` to every Seedance clip in the series. This locks facial continuity.
 
@@ -219,11 +219,11 @@ Format 5's polished finale is fine because it reads as GRWM-genre convention, no
 
 ## 17. Reference examples — three prompts known to have produced good output
 
-**Example A — Format 1 raw video bedroom (produced a well-performing clip):**
-15-second single continuous take, phone propped on dresser, oversized grey marl tee, hair in loose claw clip, character on edge of bed. Mid-thought opening: "Okay so I keep forgetting to film this and it's actually driving me mad." Followed by casual brand mention ("It's that Nyla one — off TikTok Shop"), boyfriend anecdote ("sprayed it on my hoodie three days ago, washed it, came out the machine still smelling like it. My boyfriend never compliments me — he keeps asking what I've got on"), and a flat close ("It's only £25 I think. Yeah. I'm obsessed."). 30–40% eye contact with camera max. Bottle held at thigh level during speech.
+**Example A — Format 1 raw video bedroom (produced a well-performing clip; its talk runs about 59 words in 15 seconds, faster than the timing math above — keep the format, write about 35–40 words):**
+15-second single continuous take, phone propped on dresser, oversized grey marl tee, hair in loose claw clip, character on edge of bed. Mid-thought opening: "Okay so I keep forgetting to film this and it's actually driving me mad." Followed by casual brand mention ("It's that Nyla one, off TikTok Shop"), boyfriend anecdote ("sprayed it on my hoodie three days ago, washed it, came out the machine still smelling like it. My boyfriend never compliments me, he keeps asking what I've got on"), and a flat close ("It's only £25 I think. Yeah. I'm obsessed."). 30–40% eye contact with camera max. Bottle held at thigh level during speech.
 
 **Example B — Format 3 kitchen mum-anecdote (produced a well-performing clip):**
-15-second single continuous take, cream oversized knit sweatshirt, character leaning on kitchen counter with a plain ceramic mug of tea. Opening: "Right — I genuinely have to hide this perfume from my mum at this point." Mock-exasperated story about mum stealing it. Scent description buried in the middle. Close: "So… yeah, this is my third bottle now." Plain sage-grey shaker cabinets, no branded items, late-afternoon light.
+15-second single continuous take, cream oversized knit sweatshirt, character leaning on kitchen counter with a plain ceramic mug of tea. Opening: "Right. I genuinely have to hide this perfume from my mum at this point." Mock-exasperated story about mum stealing it. Scent description buried in the middle. Close: "So. Yeah. This is my third bottle now." Plain sage-grey shaker cabinets, no branded items, late-afternoon light.
 
 **Example C — Format 5 GRWM finishing touches (proven visual format):**
 14-second static-camera clip, character applies a soft skincare step (moisturiser, earrings, or lip liner), then reveals the Nyla bottle, shakes it, removes cap to expose atomiser, sprays neck and chest with visible mist. Presents bottle. Shows both rose-gold + champagne-gold variants (@image_1 and @image_5). Ends with a caught-mid-giggle hands-up finale pose. Soft warm bedroom setting. Silent character — voiceover added in post. This format is proven and can carry a polished finale because it lives in GRWM genre conventions.

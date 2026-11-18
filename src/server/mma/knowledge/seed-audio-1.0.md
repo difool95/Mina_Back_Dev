@@ -5,7 +5,7 @@ It is **reference-to-audio**, not text-to-speech: one call can produce dialogue,
 voice character, ambience, Foley, sound effects and background music together as
 one timed soundtrack.
 
-Available **now**, independently of Seedance 2.5's pending API.
+Available **now**, beside Seedance 2.5 (both are live).
 
 Tags: **[OFFICIAL]** BytePlus / Seed Audio documentation · **[PRACTICE]** ours.
 

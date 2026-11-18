@@ -44,7 +44,7 @@
     {
       "key": "seedance_prompting",
       "title": "Seedance 2.0 prompting guide",
-      "file": "seedance-prompting.md",
+      "file": "seedance-2.0.md",
       "media": ["video"],
       "phases": ["video_prompt"],
       "kind": "engine",
@@ -86,7 +86,7 @@
     },
     {
       "key": "kling_prompting",
-      "title": "Kling 3.0 / 3.0 Omni prompting guide",
+      "title": "Kling 4.0 prompting guide",
       "file": "kling-prompting.md",
       "media": ["video"],
       "phases": ["video_prompt"],
@@ -97,13 +97,13 @@
     },
     {
       "key": "seedance_cinematic",
-      "title": "Seedance cinematic commercials & short-drama",
-      "file": "seedance-cinematic-commercials.md",
+      "title": "Seedance cinematic commercials & short-drama (every version)",
+      "file": "seedance-cinematic.md",
       "media": ["video"],
       "phases": ["video_prompt"],
       "kind": "target_register",
       "specialized": true,
-      "include_reason": "A Seedance target is explicitly cinematic, commercial, trailer-like or short drama.",
+      "include_reason": "A Seedance target, on any version, is explicitly cinematic, commercial, trailer-like or short drama.",
       "match": {
         "all": [{ "fact": "engine", "op": "eq", "value": "seedance" }],
         "any_of": [
@@ -210,6 +210,25 @@
       }
     },
     {
+      "key": "natural_variety",
+      "title": "Natural variety — sameness, symmetry & texture",
+      "file": "natural-variety.md",
+      "media": ["image", "video"],
+      "phases": ["image_prompt", "video_prompt"],
+      "kind": "target_realism",
+      "specialized": true,
+      "include_reason": "The target is photographic, stylized or physically real, so repeated and natural elements must differ the way real ones do, written as description rather than bans.",
+      "match": {
+        "any_of": [
+          { "all": [
+            { "fact": "target_output_medium", "op": "in", "value": ["photographic", "stylized"] },
+            { "fact": "target_subjects", "op": "includes_any", "value": ["person", "product", "scene_or_location", "material_or_element"] }
+          ] },
+          { "all": [{ "fact": "requires_physical_realism", "op": "eq", "value": true }] }
+        ]
+      }
+    },
+    {
       "key": "audio_realism",
       "title": "Audio realism — the mic-captured sound bed",
       "file": "audio-realism.md",
@@ -222,6 +241,22 @@
         "all": [
           { "fact": "audio_mode", "op": "eq", "value": "generated_native" },
           { "fact": "target_audio_nature", "op": "in", "value": ["ambient_only", "on_camera_dialogue", "voice_over", "asmr", "mixed"] }
+        ]
+      }
+    },
+    {
+      "key": "speech_performance",
+      "title": "Speech performance — how a character talks like a person",
+      "file": "speech-performance.md",
+      "media": ["video"],
+      "phases": ["video_prompt"],
+      "kind": "audio_contract",
+      "specialized": true,
+      "include_reason": "A person speaks on camera and the video engine generates the voice, so pace, breaths, pauses and reactions must be written into the timeline.",
+      "match": {
+        "all": [
+          { "fact": "audio_mode", "op": "eq", "value": "generated_native" },
+          { "fact": "target_audio_nature", "op": "eq", "value": "on_camera_dialogue" }
         ]
       }
     },

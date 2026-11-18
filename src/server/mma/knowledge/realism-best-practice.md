@@ -2,7 +2,7 @@
 
 Use this file as a realism layer over every Mina photo or video mode. Realism does not mean “add pores, grain and camera shake.” A result feels real when causes and consequences agree across time: bodies carry weight, skin deforms, hair reacts to air, clothing reacts to joints, objects keep state, shadows stay attached, focus/exposure have reasons, and sound arrives from the visible event.
 
-Follow `seedance-prompting.md` for structure and apply this file after the format-specific mode.
+Follow the Seedance guides sent with this one (`seedance-common.md` and the version guide, `seedance-2.0.md` or `seedance-2.5.md`) for structure and apply this file after the format-specific mode.
 
 ## 1. The realism stack
 

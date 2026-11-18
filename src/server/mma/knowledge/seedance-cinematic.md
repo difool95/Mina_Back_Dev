@@ -1,9 +1,14 @@
-# Seedance 2.0 — cinematic commercials & short-drama register
+# Seedance — cinematic commercials & short-drama register (every version)
 
 For briefs that want CINEMA: commercials, brand films, trailer-feel product spots,
-short-drama scenes. Built from the official Seedance 2.0 template (translated) and
+short-drama scenes. Built from the official Seedance template (translated) and
 the Seedance team's own director-agent playbook. For raw video register use the video
 files instead — never mix the two grammars in one prompt.
+
+This file is the CRAFT and holds on every Seedance version. It never sets a
+number: the runtime, the beat map and the reference ceiling are the version
+guide's (`seedance-2.0.md` or `seedance-2.5.md`), and the user's brief outranks
+both.
 
 ## 1. Think like the Seedance "director agent"
 
@@ -12,7 +17,10 @@ write your prompt the way that director thinks:
 
 1. **Shot splitting with consistency.** Break the video into shots that stay
    visually consistent with each other and cut smoothly — do NOT over-cut. Each
-   shot flows from the previous one; a 15s piece wants 3–5 shots, not 10.
+   shot flows from the previous one and earns its cut. How many shots is the
+   brief's call when it sets a rhythm ("quick cuts every 1–2s", "one continuous
+   take"); when it is silent, give each shot room to land — seconds, not a
+   flicker.
 2. **Real-world light and physics.** Describe lighting that could exist (source,
    direction, temperature) and physical behaviour (cloth soaking and getting
    heavy, liquid splashing, hair moving) — Seedance simulates them when told.
@@ -52,8 +60,8 @@ write your prompt the way that director thinks:
    ```
    One camera intent per shot. Dialogue lines verbatim. An SFX line for EVERY shot
    — silence is also a sound direction.
-8. **Negative prompt** — the full official list (see the Seedance prompting guide,
-   section 4), plus scene-specific fixes for anything the model got wrong on a
+8. **Negative prompt** — the full official list (see the version guide's
+   negative section), plus scene-specific fixes for anything the model got wrong on a
    previous attempt (the official template literally lists "a paper mysteriously
    appearing in her hand" — fix observed glitches by naming them in the negative).
 
@@ -62,19 +70,25 @@ write your prompt the way that director thinks:
 - **The product is a character.** Give it a tagged line in the character section
   with material, finish, label and how light hits it ("deep specular streaks on
   the mirror-polished rose-gold chrome").
-- **Arc in 15 seconds:** establish (0–3s) → desire/demo (3–10s) → hold on the
-  product (10–15s). The final shot holds the product in its best light — slow
-  push-in or a hand setting it down, never a spin (back-face quirk).
+- **The arc, at any length:** establish → desire/demo → hold on the product,
+  each given its share of the runtime (on a long piece the version guide's beat
+  map is this arc told in more beats). The final shot holds the product in its
+  best light — slow push-in or a hand setting it down, never a spin (back-face
+  quirk).
 - **Cut rhythm sells register.** Luxury = fewer, longer shots with slow moves.
   Energy/sport = harder cuts, but still one camera intent per shot.
-- **Dialogue is optional in commercials.** A silent piece with strong SFX design
-  (pour, clink, fabric, breath) often reads more premium than a voice.
+- **Dialogue: the brief decides.** When the brief scripts lines, the voice is
+  the spine of the piece: every line is spoken, cuts and inserts run under the
+  talk, and silence is never traded for the user's words. Only when the brief
+  gives no words is a silent piece an option — strong SFX design (pour, clink,
+  fabric, breath) often reads more premium than a voice nobody asked for.
 - **Consistency across a series:** reuse the same tagged character/scene reference
   images in every generation of the campaign; describe them identically.
 
-## 4. Budgeting the 14 references
+## 4. Budgeting the references
 
-Cinematic jobs eat references fast. Priority order when trimming to 14:
+Cinematic jobs eat references fast. The ceiling is the version guide's; when a
+job runs past it, the priority order for what stays:
 1. Frame anchor(s) — the start (and end, if used) frame.
 2. The product.
 3. The main character(s).
@@ -86,6 +100,10 @@ near-identical references — one slot each.
 ---
 
 ## Example prompt — full, real, in-register (KEEP THIS)
+
+A 15-second piece whose brief gave no words, so it is silent by design. Its
+seconds and shot count are this example's, not a rule — a longer piece writes
+more beats in the same grammar, and a scripted brief speaks its lines.
 
 Aspect ratio 9:16 vertical, 15 seconds, 1080p, cinematic commercial grade, three shots with hard cuts at 5.0s and 10.0s. No on-screen text of any kind — no captions, no title cards, no logos beyond the product itself, completely text-free frame from 0 to 15s.
 

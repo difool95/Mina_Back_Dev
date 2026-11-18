@@ -466,7 +466,7 @@ As of July 2026, OpenAI describes GPT Image 2 as its state-of-the-art image gene
 
 ## 11. GPT Image 2.5 — Sunburst and Flare (September 2026)
 
-Mina's Creative lanes run on **GPT Image 2.5 Flare** (`gpt-image-2.5-flare`): **Creative = Flare**, and **Creative+** (the pill's second press, admin-only) opens on Flare too — it is the lane an admin re-points in GenCost to trial another engine. Sunburst (`gpt-image-2.5-sunburst`) and GPT Image 2 stay selectable there as manual choices. Everything below applies to both lanes.
+Mina's GPT Image lanes run on GPT Image 2.5 (names since Oct 23 — the 2K admin lane was "Creative", the 4K lane "Creative+"): **Design = Flare** (`gpt-image-2.5-flare`, 2K master, 1 matcha, admin-only since Oct 21) and **Creative = Sunburst** (`gpt-image-2.5-sunburst`, 4K master, 2 matcha — the lane the app opens on, for every account). GPT Image 2 stays selectable in GenCost as a manual choice. Everything below applies to both lanes.
 
 - **Two snapshots, one architecture.** Sunburst is the most capable (editing precision, instruction following, typography); Flare is the fastest (about 1.5–2× quicker) at the same quality tiers. Token consumption is identical, so the two lanes cost the same to render.
 - **Quality tiers `xhigh` and `max`.** New on 2.5 (GPT Image 2 stops at `high`). Mina renders both Creative lanes at **`max`** — the highest-fidelity tier, with the most output tokens. It spends more of the budget on fine texture, small text and material detail, so prompts can lean on legibility and micro-detail more than before.

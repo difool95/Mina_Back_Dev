@@ -2,7 +2,7 @@
 
 Use this mode when the result should feel captured by a real person on an iPhone rather than by a cinema camera pretending to be a phone. The iPhone look is a system: lens choice, sensor size, computational processing, autofocus/exposure behavior, stabilization, operator ergonomics, social-platform compression and ordinary human decisions. Do not create it by dumping every defect into one prompt.
 
-Follow `seedance-prompting.md` first for blueprint order, tagging, timecodes, audio, negatives and continuity.
+Follow the Seedance guides sent with this one (`seedance-common.md` and the version guide, `seedance-2.0.md` or `seedance-2.5.md`) first for blueprint order, tagging, timecodes, audio, negatives and continuity.
 
 ## 1. Select the exact iPhone register
 
@@ -259,7 +259,7 @@ Image behavior. Ordinary iPhone computational HDR: her face is exposed pleasantl
 
 0.00–2.20s — Recording begins a fraction early. @Image 1 is looking down, stirring her drink once. The operator initially frames her low, then makes one delayed 3-degree upward correction at 0.8s after noticing excess table. She glances at the preview rather than directly into the lens and gives a small closed-mouth half-smile. SFX: realistic rear-camera phone audio—teaspoon against ceramic close and crisp, café room tone, low HVAC, distant milk-steamer hiss, rain-muted traffic outside.
 
-2.20–6.20s — An off-camera friend asks in a normal conversational voice, “Was it actually that bad?” Their voice comes from immediately behind the phone, clear and slightly louder than the room. @Image 1 looks briefly toward the friend’s face above the phone, not the lens, exhales through her nose and says, “No, it was just… weirdly intense.” Natural 0.35-second hesitation before “weirdly,” small asymmetrical brow lift, mouth perfectly lip-synced. She keeps one hand around the warm cup; her thumb presses lightly against the ceramic. Camera remains mostly still with breath-linked movement.
+2.20–6.20s — An off-camera friend asks in a normal conversational voice, “Was it actually that bad?” Their voice comes from immediately behind the phone, clear and slightly louder than the room. @Image 1 looks briefly toward the friend’s face above the phone, not the lens, exhales through her nose and says, “No, it was just, weirdly intense.” Natural 0.35-second hesitation before “weirdly,” small asymmetrical brow lift, mouth perfectly lip-synced. She keeps one hand around the warm cup; her thumb presses lightly against the ceramic. Camera remains mostly still with breath-linked movement.
 
 6.20–9.80s — A bus passes outside and temporarily darkens the window area. Automatic exposure makes one gentle 0.3-second correction to maintain her face, then settles. She looks toward the street, laughs once under her breath and adds, “Everyone suddenly had an opinion.” The operator reacts slightly late and shifts the frame 5 cm left only after she turns, leaving her off-centre for a moment. A loose strand of hair moves when she turns. SFX: bus tyre wash and low engine outside remain muffled by glass; her nearby voice dominates; teaspoon settles with one tiny clink.
 
