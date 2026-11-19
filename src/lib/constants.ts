@@ -25,6 +25,7 @@ export const UPLOAD_EXTENSIONS: Record<string, string> = {
   ...IMAGE_EXTENSIONS,
   'video/mp4': 'mp4',
   'audio/wav': 'wav',
+  'audio/mpeg': 'mp3',
 }
 
 //THIS IS THE AGENT OF THE CREATE ASSET DIRECTOR, WHICH IS THE AGENT THAT WILL BE USED TO GENERATE MMA STEP 1 OF CREATE MODE. 

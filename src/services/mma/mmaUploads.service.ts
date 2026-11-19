@@ -33,7 +33,7 @@ export function deleteStudioImage(userId: string, url: string) {
   // The whole key, matched exactly: a looser check could be walked out of the
   // user's folder with `..` and delete someone else's file.
   const folder = ownerFolder(userId)
-  if (!url.startsWith(`${env.R2_PUBLIC_BASE_URL}/`) || !new RegExp(`^${folder}/[0-9a-f-]{36}\\.(jpg|png|webp|mp4|wav)$`).test(key)) {
+  if (!url.startsWith(`${env.R2_PUBLIC_BASE_URL}/`) || !new RegExp(`^${folder}/[0-9a-f-]{36}\\.(jpg|png|webp|mp4|wav|mp3)$`).test(key)) {
     throw new Error('Not one of your uploads')
   }
 
