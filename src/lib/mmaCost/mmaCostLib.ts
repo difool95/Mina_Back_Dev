@@ -1,4 +1,6 @@
 import type {
+  AnimateLane,
+  AnimateResolution,
   ClaudeUsage,
   CostProvider,
   CostRates,
@@ -10,6 +12,7 @@ import type {
   StillLane,
 } from '../../types/mma/mma.types.js'
 import {
+  ANIMATE_LANE_PRICES,
   CLAUDE_PRICES,
   GEMINI_IMAGE_PRICES,
   GPT_IMAGE_PRICES,
@@ -21,6 +24,12 @@ import {
 } from '../constants.js'
 
 const PER_MILLION = 1_000_000
+
+/** The matchas an Animate costs: `seconds` at the lane's rate for `resolution`, less that duration's discount. */
+export function animateCost(lane: AnimateLane, resolution: AnimateResolution, seconds: number) {
+  const { perSecond, discounts } = ANIMATE_LANE_PRICES[lane][resolution]
+  return seconds * perSecond * (1 - (discounts[seconds] ?? 0))
+}
 
 /** Dollars to five decimals, as `mg_cost_data` stores them. */
 const round = (usd: number) => Math.round(usd * 100_000) / 100_000

@@ -2,7 +2,8 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 
 import { env } from '../../config/env.js'
-import { startStillGeneration } from '../../services/mma/mma.service.js'
+import { ANIMATE_DURATION_RANGE } from '../../lib/constants.js'
+import { startAnimateGeneration, startStillGeneration } from '../../services/mma/mma.service.js'
 import { deleteStudioImage, storeStudioImage } from '../../services/mma/mmaUploads.service.js'
 
 /** One of our R2 files — never a URL of the browser's choosing, which the API would go and fetch. */
@@ -38,6 +39,36 @@ export async function postStillGeneration(req: Request, res: Response) {
   // requireUser has already resolved this from the verified bearer token.
   res.json(
     await startStillGeneration(req.userId!, {
+      ...body,
+      ip: req.ip ?? '',
+      userAgent: req.get('user-agent') ?? '',
+    }),
+  )
+}
+
+/** A video or a sound from Animate's upload row, with its length once fitted in the studio. */
+const timedUpload = z.object({ url: assetUrl, seconds: z.number().positive() })
+
+const animateBody = z.object({
+  studioSessionId: z.uuid(),
+  platform: z.enum(['tiktok', 'instagram-post', 'print', 'square']),
+  aspectRatio: z.enum(['9:16', '16:9', '3:4', '4:3', '2:3', '3:2', '1:1']),
+  lane: z.enum(['director']),
+  brief: z.string(),
+  isSoundOn: z.boolean(),
+  resolution: z.enum(['720p', '1080p']),
+  // Whole seconds within the studio's range: the price is worked out from it here, never taken from the browser.
+  durationSeconds: z.int().min(ANIMATE_DURATION_RANGE.min).max(ANIMATE_DURATION_RANGE.max),
+  images: z.array(assetUrl),
+  videos: z.array(timedUpload),
+  audios: z.array(timedUpload),
+})
+
+//THIS METHOD IS USED TO START AN ANIMATE (VIDEO) GENERATION. IT RETURNS THE GENERATION ID AND THE BALANCE LEFT ONCE IT IS PAID FOR.
+export async function postAnimateGeneration(req: Request, res: Response) {
+  const body = animateBody.parse(req.body)
+  res.json(
+    await startAnimateGeneration(req.userId!, {
       ...body,
       ip: req.ip ?? '',
       userAgent: req.get('user-agent') ?? '',

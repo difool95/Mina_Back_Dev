@@ -1,5 +1,22 @@
 import type { FingertipsTool } from '../types/fingertips.types.js'
-import type { StillLane } from '../types/mma/mma.types.js'
+import type { AnimateLane, AnimateResolution, StillLane } from '../types/mma/mma.types.js'
+
+/**
+ * What an Animate costs, by lane and resolution: matchas per second of video, and
+ * the discount (a fraction off) on the durations that have one.
+ */
+export const ANIMATE_LANE_PRICES: Record<
+  AnimateLane,
+  Record<AnimateResolution, { perSecond: number; discounts: Record<number, number> }>
+> = {
+  director: {
+    '720p': { perSecond: 1, discounts: { 10: 0.1, 30: 0.2 } },
+    '1080p': { perSecond: 2, discounts: { 10: 0.1, 30: 0.1 } },
+  },
+}
+
+/** The durations an Animate can ask for, in seconds. */
+export const ANIMATE_DURATION_RANGE = { min: 4, max: 30 }
 
 /** What one Create (still image) generation costs, in matchas, on each lane. */
 export const STILL_GENERATION_COSTS: Record<StillLane, number> = { niche: 1, creative: 1, creative_plus: 2 }

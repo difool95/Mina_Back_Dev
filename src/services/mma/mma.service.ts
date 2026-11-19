@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto'
 
 import { STILL_GENERATION_COSTS, STILL_RENDERERS } from '../../lib/constants.js'
 import { canBeBrandMemory } from '../../lib/brandMemory/brandMemoryLib.js'
-import { costData } from '../../lib/mmaCost/mmaCostLib.js'
+import { animateCost, costData } from '../../lib/mmaCost/mmaCostLib.js'
 import { plainImage } from '../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import { stillMmaVars } from '../../lib/mmaVars/mmaVarsLib.js'
 import type {
+  AnimateGenerationRequest,
+  GenerationOpening,
   MmaSpend,
   MmaStatus,
   StepTiming,
@@ -72,27 +74,38 @@ export const markStatus = (generationId: string, status: MmaStatus) =>
   updateGeneration(generationId, { mg_mma_status: status }).catch(logMmaError)
 
 /**
- * Gives the customer their matcha back, then marks the generation as failed
- * with why in `mg_error`, and what the calls that did run cost, sold for
+ * Gives the customer back the `matchas` they paid, then marks the generation as
+ * failed with why in `mg_error`, and what the calls that did run cost, sold for
  * nothing, in `mg_cost_data`. The refund goes first: it is what the customer
  * cannot do without.
  */
 async function failGeneration(
   passId: string,
   generationId: string,
-  request: StillGenerationRequest,
-  spend: MmaSpend,
+  matchas: number,
   code: string,
   message: string,
+  spentCostData: object,
 ) {
-  await refundMmaCharge(passId, generationId, STILL_GENERATION_COSTS[request.lane])
+  await refundMmaCharge(passId, generationId, matchas)
   await updateGeneration(generationId, {
     mg_status: 'error',
     mg_mma_status: 'error',
     mg_error: { code, message },
-    mg_cost_data: costData(request.lane, spend, false, costRates()),
+    mg_cost_data: spentCostData,
   })
 }
+
+/** A still's failure: its lane's price back, and what its calls cost so far. */
+const failStill = (passId: string, generationId: string, request: StillGenerationRequest, spend: MmaSpend, code: string, message: string) =>
+  failGeneration(
+    passId,
+    generationId,
+    STILL_GENERATION_COSTS[request.lane],
+    code,
+    message,
+    costData(request.lane, spend, false, costRates()),
+  )
 
 /**
  * The MMA steps of a still, each fed by the one before. Nobody waits on them:
@@ -110,7 +123,7 @@ async function runStillPipeline(
   spend: MmaSpend,
 ) {
   const fail = (code: string, message: string | null) =>
-    failGeneration(passId, generationId, request, spend, code, message ?? '')
+    failStill(passId, generationId, request, spend, code, message ?? '')
 
   await markStatus(generationId, 'scanning')
   const assets = await runCreateAssetIntelligence(request.brief, request.uploads, request.brandMemories)
@@ -182,23 +195,35 @@ async function runStillPipeline(
   }).catch(logMmaError)
 }
 
+/** What sets a Create apart from an Animate in the rows that frame it and in its charge. */
+interface GenerationKind {
+  /** The matchas charged. */
+  cost: number
+  /** The charge's `mg_reason`. */
+  reason: string
+  /** The generation's `mg_mma_mode`. */
+  mode: 'still' | 'video'
+  /** The generation's `mg_type` and `mg_content_type`. */
+  contentType: 'image' | 'video'
+  /** The per-generation session's `mg_title`, also the generation's. */
+  sessionTitle: string
+  /** The per-generation session's `mg_meta.flow`. */
+  flow: string
+  /** The MMA step 1 row written empty with the generation, for a pipeline that fills it in. */
+  firstStep?: string
+}
+
 /**
- * Starts a Create (still image) generation: the rows that frame it, then the
- * matcha it costs.
+ * Opens a generation: the rows that frame it, then the matcha it costs. Shared by Create and Animate.
  *
  * Written to `mega_generations`, in this order:
  * - a "Mina Studio session" row, only the first time this browser tab's studio
  *   session is seen — a closed tab comes back with a new one;
- * - an "Image session" row, new for every generation;
- * - the `generation` row and its MMA step 1, both skeletons the pipeline fills in;
+ * - an "Image session" or "Video session" row, new for every generation;
+ * - the `generation` row (and, for Create, its MMA step 1), skeletons the pipeline fills in;
  * - the `credit_transaction` charging for it, with the balance on `mega_customers`.
- *
- * Then starts the MMA steps: step 1 fills its row in, steps 2, 3 and 4 add theirs.
  */
-export async function startStillGeneration(
-  userId: string,
-  request: StillGenerationRequest,
-): Promise<StillGenerationResult> {
+async function openGeneration(userId: string, request: GenerationOpening, kind: GenerationKind) {
   const passId = `pass:user:${userId}`
 
   const { data: customer, error: customerError } = await supabase
@@ -212,12 +237,12 @@ export async function startStillGeneration(
 
   // Checked before anything is written, so a refused generation leaves no rows behind.
   const creditsBefore = Number(customer.mg_credits ?? 0)
-  const cost = STILL_GENERATION_COSTS[request.lane]
+  const { cost } = kind
   if (creditsBefore < cost) throw new Error('Not enough matcha')
 
   // Check if this studio session has been seen before, so we only write the
-  // "Mina Studio session" row once per tab. The image session and generation
-  // rows are new every time.
+  // "Mina Studio session" row once per tab. The image or video session and
+  // generation rows are new every time.
   const { data: studioSession, error: sessionError } = await supabase
     .from('mega_generations')
     .select('mg_id')
@@ -228,7 +253,7 @@ export async function startStillGeneration(
   if (sessionError) throw new Error(sessionError.message)
 
   const at = new Date().toISOString()
-  const imageSessionId = randomUUID()
+  const sessionId = randomUUID()
   const generationId = randomUUID()
   const owned = { mg_pass_id: passId, mg_created_at: at, mg_updated_at: at }
   const session = (id: string, title: string, meta: object) => ({
@@ -243,7 +268,7 @@ export async function startStillGeneration(
     mg_title: title,
   })
 
-  // We insert 2 rows if the studio session is new, we always insert the image session, generation, and step 1 rows.
+  // The studio session row only if it is new; the image or video session and the generation (with Create's step 1) always.
   const rows = [
     ...(studioSession
       ? []
@@ -254,27 +279,27 @@ export async function startStillGeneration(
             userAgent: request.userAgent,
           }),
         ]),
-    session(imageSessionId, 'Image session', { flow: 'still_create', source: 'mma' }),
+    session(sessionId, kind.sessionTitle, { flow: kind.flow, source: 'mma' }),
     {
       ...owned,
       mg_id: `generation:${generationId}`,
       mg_record_type: 'generation',
       mg_generation_id: generationId,
-      mg_mma_mode: 'still',
+      mg_mma_mode: kind.mode,
       mg_mma_status: 'progressing',
       mg_status: 'progressing',
       mg_mma_vars: {},
       mg_prompt: '',
       mg_output_url: '',
       mg_meta: {},
-      mg_session_id: imageSessionId,
+      mg_session_id: sessionId,
       mg_platform: request.platform,
-      mg_title: 'Image session',
-      mg_type: 'image',
-      mg_content_type: 'image',
+      mg_title: kind.sessionTitle,
+      mg_type: kind.contentType,
+      mg_content_type: kind.contentType,
       mg_cost_data: {},
     },
-    stepRow(passId, generationId, 1, 'create_asset_intelligence', {}, at),
+    ...(kind.firstStep ? [stepRow(passId, generationId, 1, kind.firstStep, {}, at)] : []),
   ]
 
   // One insert for every row, each leaving the columns it does not set at the
@@ -287,7 +312,7 @@ export async function startStillGeneration(
   await recordTransaction({
     passId,
     delta: -cost,
-    reason: `mma_still_${request.lane}`,
+    reason: kind.reason,
     refType: 'mma_charge',
     refId: `mma:${generationId}`,
     source: 'mma',
@@ -302,16 +327,77 @@ export async function startStillGeneration(
 
   if (updateError) throw new Error(updateError.message)
 
+  return { passId, generationId, sessionId, credits: creditsAfter }
+}
+
+/**
+ * Starts a Create (still image) generation: its rows and charge (`openGeneration`),
+ * then the MMA steps: step 1 fills its row in, steps 2, 3 and 4 add theirs.
+ */
+export async function startStillGeneration(
+  userId: string,
+  request: StillGenerationRequest,
+): Promise<StillGenerationResult> {
+  const { passId, generationId, sessionId, credits } = await openGeneration(userId, request, {
+    cost: STILL_GENERATION_COSTS[request.lane],
+    reason: `mma_still_${request.lane}`,
+    mode: 'still',
+    contentType: 'image',
+    sessionTitle: 'Image session',
+    flow: 'still_create',
+    firstStep: 'create_asset_intelligence',
+  })
+
 //This line is for starting the MMA steps asynchronously: Create Asset Intelligence, the knowledge files, the still prompter, then the image engine.
 //Any error thrown along the way (a row that could not be written…) is logged, the matcha is refunded and the generation marked as failed.
 //The spend object is passed along to collect the usage of every paid call, so the generation's mg_cost_data can be calculated whether it ends done or failed.
   const spend: MmaSpend = { claude: [], seo: null, image: null }
-  runStillPipeline(userId, passId, generationId, imageSessionId, request, spend)
+  runStillPipeline(userId, passId, generationId, sessionId, request, spend)
     .catch((error) => {
       logMmaError(error)
-      return failGeneration(passId, generationId, request, spend, 'mma_pipeline_failed', (error as Error).message)
+      return failStill(passId, generationId, request, spend, 'mma_pipeline_failed', (error as Error).message)
     })
     .catch(logMmaError)
 
-  return { generationId, credits: creditsAfter }
+  return { generationId, credits }
+}
+
+/**
+ * The MMA steps of an Animate, each fed by the one before, as `runStillPipeline`
+ * does for a still. None is written yet: the generation stays as it was opened.
+ */
+async function runAnimatePipeline(
+  _passId: string,
+  _generationId: string,
+  _videoSessionId: string,
+  _request: AnimateGenerationRequest,
+) {}
+
+/**
+ * Starts an Animate (video) generation: its rows and charge (`openGeneration`),
+ * priced on the server from the lane, resolution and duration the user set, then its MMA steps.
+ */
+export async function startAnimateGeneration(
+  userId: string,
+  request: AnimateGenerationRequest,
+): Promise<StillGenerationResult> {
+  const cost = animateCost(request.lane, request.resolution, request.durationSeconds)
+  const { passId, generationId, sessionId, credits } = await openGeneration(userId, request, {
+    cost,
+    reason: 'mma_video',
+    mode: 'video',
+    contentType: 'video',
+    sessionTitle: 'Video session',
+    flow: 'video_animate',
+  })
+
+  // Started without waiting, like a still's: anything thrown is logged, the matcha refunded and the generation marked failed.
+  runAnimatePipeline(passId, generationId, sessionId, request)
+    .catch((error) => {
+      logMmaError(error)
+      return failGeneration(passId, generationId, cost, 'mma_pipeline_failed', (error as Error).message, {})
+    })
+    .catch(logMmaError)
+
+  return { generationId, credits }
 }

@@ -42,6 +42,39 @@ export interface StillGenerationResult {
   credits: number
 }
 
+/** An Animate style, each with its own price. Director is the only one for now. Same as the frontend's. */
+export type AnimateLane = 'director'
+
+export type AnimateResolution = '720p' | '1080p'
+
+/** A video or a sound from Animate's upload row, with its length once fitted in the studio. */
+export interface TimedUpload {
+  url: string
+  seconds: number
+}
+
+export interface AnimateGenerationRequest {
+  /** The browser tab's studio session, shared with Create: a new one means a new "Mina Studio session" row. */
+  studioSessionId: string
+  platform: MmaPlatform
+  aspectRatio: AspectRatio
+  lane: AnimateLane
+  /** What the user typed, the locked strip on its last line. */
+  brief: string
+  isSoundOn: boolean
+  resolution: AnimateResolution
+  durationSeconds: number
+  /** In the upload row's order: the first is the start frame. */
+  images: string[]
+  videos: TimedUpload[]
+  audios: TimedUpload[]
+  ip: string
+  userAgent: string
+}
+
+/** What a session and generation pair is opened with: the fields `startStillGeneration` and `startAnimateGeneration` share. */
+export type GenerationOpening = Pick<StillGenerationRequest, 'studioSessionId' | 'platform' | 'ip' | 'userAgent'>
+
 /**
  * A generation's `mg_mma_status`: the step its pipeline is on, which the studio
  * polls to choose what Mina types meanwhile. Same as the frontend's.
