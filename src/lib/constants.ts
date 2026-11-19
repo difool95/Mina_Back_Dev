@@ -4,17 +4,27 @@ import type { StillLane } from '../types/mma/mma.types.js'
 /** What one Create (still image) generation costs, in matchas, on each lane. */
 export const STILL_GENERATION_COSTS: Record<StillLane, number> = { niche: 1, creative: 1, creative_plus: 2 }
 
-/** The largest picture the studio uploads, the same limit as its file picker. */
-export const UPLOAD_MAX_SIZE = '48mb'
+/**
+ * The largest file the studio uploads. Pictures stop at 48 MB in the studio;
+ * this is for an Animate video the browser could only copy, not compress.
+ */
+export const UPLOAD_MAX_SIZE = '200mb'
 
 /**
  * The picture types the studio uploads, and the extension each is stored
  * under. The studio converts everything else (HEIC, AVIF, GIF…) before sending.
  */
-export const UPLOAD_EXTENSIONS: Record<string, string> = {
+const IMAGE_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+}
+
+/** Every type the studio uploads: the pictures, plus Animate's videos and sounds, which it converts to MP4 and WAV first. */
+export const UPLOAD_EXTENSIONS: Record<string, string> = {
+  ...IMAGE_EXTENSIONS,
+  'video/mp4': 'mp4',
+  'audio/wav': 'wav',
 }
 
 //THIS IS THE AGENT OF THE CREATE ASSET DIRECTOR, WHICH IS THE AGENT THAT WILL BE USED TO GENERATE MMA STEP 1 OF CREATE MODE. 
@@ -251,8 +261,8 @@ export const BRIA_API_URL = 'https://engine.prod.bria-api.com/v2'
 //This variable is the number of milliseconds to wait between each poll to Replicate for the status of a generation. It is set to 2000ms, which is 2 seconds.
 export const REPLICATE_POLL_MS = 2000
 
-/** What a generated picture is stored under, by type: the upload types, plus the SVG Vectorize makes. */
-export const GENERATED_EXTENSIONS: Record<string, string> = { ...UPLOAD_EXTENSIONS, 'image/svg+xml': 'svg' }
+/** What a generated picture is stored under, by type: the picture types, plus the SVG Vectorize makes. */
+export const GENERATED_EXTENSIONS: Record<string, string> = { ...IMAGE_EXTENSIONS, 'image/svg+xml': 'svg' }
 
 /** The agent that reads the picture and writes Tweak's edit prompt. */
 export const TWEAK_PROMPTER = {

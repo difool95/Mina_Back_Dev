@@ -46,7 +46,7 @@ export async function postStillGeneration(req: Request, res: Response) {
 }
 
 /** The raw bytes of one picture; `express.raw` leaves the body unset when its type is not one we store. */
-const uploadBody = z.instanceof(Buffer, { error: 'Expected a JPEG, PNG or WebP picture' })
+const uploadBody = z.instanceof(Buffer, { error: 'Expected a JPEG, PNG or WebP picture, an MP4 video or a WAV sound' })
 
 //THIS METHOD IS USED TO UPLOAD FILES TO THE SERVER. IT REQUIRES THE USER TO BE AUTHENTICATED AND CHECKS THAT THE UPLOADED FILE IS OF A VALID TYPE AND SIZE.
 export async function postUpload(req: Request, res: Response) {
