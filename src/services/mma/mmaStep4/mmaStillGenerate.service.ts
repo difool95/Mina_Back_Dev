@@ -83,13 +83,15 @@ export async function runNanoBanana(cleanPrompt: string, imageUrls: string[], ra
     error: null,
     input,
     output: null,
-    provider: { gemini: { model: input.model } },
+    provider: { gemini: { model: input.model, usage: null } },
   }
   let provenance: MmaProvenance | null = null
   let spend: MmaSpend['image'] = null
 
   try {
     const { image, usage } = await geminiImage(input, await Promise.all(imageUrls.map(readImage)))
+    // Kept on the step, as GPT Image's is, so a costly or slow call shows where its tokens went.
+    payload.provider.gemini.usage = usage
     spend = { engine: 'nanobanana', model: input.model, usage }
     const stored = await storeStill(image, seo)
     payload.output = stored.url

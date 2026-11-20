@@ -504,7 +504,8 @@ export interface NanoBananaPayload {
   /** The generated picture on R2. */
   output: string | null
   timing: StepTiming
-  provider: { gemini: { model: string } }
+  /** `usage` is the tokens Gemini reported (prompt, image, thinking), null until it answers: what `mg_cost_data` is priced from. */
+  provider: { gemini: { model: string; usage: GeminiUsage | null } }
 }
 
 /** `mg_payload` of MMA step 4 on the Creative and Creative+ lanes (`gpt_image_2_generate`). */
