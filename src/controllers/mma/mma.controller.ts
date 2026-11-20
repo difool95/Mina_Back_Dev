@@ -36,6 +36,7 @@ const stillBody = z.object({
 export async function postStillGeneration(req: Request, res: Response) {
   const body = stillBody.parse(req.body)
 
+      console.log("starting still generation of " + req.userId!);
   // requireUser has already resolved this from the verified bearer token.
   res.json(
     await startStillGeneration(req.userId!, {
