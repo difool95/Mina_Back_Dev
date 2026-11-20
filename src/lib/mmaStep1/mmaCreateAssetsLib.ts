@@ -3,6 +3,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import type {
   AssetJob,
   BackgroundPolicy,
+  ClaudeUsage,
   ColorPolicy,
   CreateAssetItem,
   CreateAssetOutput,
@@ -544,6 +545,51 @@ function recastReason(plan: CreateAssetPlan, items: CreateAssetItem[], inserted:
   if (plan.person_recast) return 'recast'
 
   return plan.base_scene_person === 'present' ? 'scene_person_kept' : 'no_base_scene_person'
+}
+
+//Merging many plans together
+export function mergePlans(plans: CreateAssetPlan[]): CreateAssetPlan {
+  const fields = plans.reduce((best, plan) => (plan.summary.length > best.summary.length ? plan : best))
+  const readings = new Map<number, CreateAssetPlan['items'][number]>()
+  for (const item of plans.flatMap((plan) => plan.items)) {
+    const kept = readings.get(item.index)
+    if (!kept || item.reason.length > kept.reason.length) readings.set(item.index, item)
+  }
+
+  return { ...fields, items: [...readings.values()] }
+}
+
+/** The create_asset_plan calls of one answer. */
+export const planCalls = (message: Anthropic.Message) =>
+  message.content.filter((block): block is Anthropic.ToolUseBlock => block.type === 'tool_use')
+
+/** The indexes of the pictures the plan has no reading for. */
+export const missingImages = (plan: CreateAssetPlan, inventory: InventoryItem[]) =>
+  inventory.map((item) => item.index).filter((index) => !plan.items.some((reading) => reading.index === index))
+
+//The reply for claude sonnet to tell it that the plan is uncomplete
+export function missingImagesReply(calls: Anthropic.ToolUseBlock[], missing: number[], total: number): Anthropic.MessageParam {
+  return {
+    role: 'user',
+    content: [
+      ...calls.map((call) => ({ type: 'tool_result' as const, tool_use_id: call.id, content: 'Received.' })),
+      {
+        type: 'text',
+        text: `The plan is incomplete: it has no reading for image ${missing.join(', ')}. Call create_asset_plan once more with the complete plan in a single call: every plan field, and one item for every image from 1 to ${total}.`,
+      },
+    ],
+  }
+}
+
+/** The tokens of two calls added up, since both are billed. */
+export function addUsage(first: ClaudeUsage, second: ClaudeUsage): ClaudeUsage {
+  return {
+    ...second,
+    input_tokens: first.input_tokens + second.input_tokens,
+    output_tokens: first.output_tokens + second.output_tokens,
+    cache_read_input_tokens: first.cache_read_input_tokens + second.cache_read_input_tokens,
+    cache_creation_input_tokens: first.cache_creation_input_tokens + second.cache_creation_input_tokens,
+  }
 }
 
 //THIS METHOD IS CALLED AFTER THE CLAUDE RESPONSE AND IT TRANSFORMS THE PLAN INTO A STRUCTURE THAT WILL BE STORED IN THE DATABASE AND USED IN THE MG_PAYLOAD COLUMN 

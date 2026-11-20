@@ -225,7 +225,7 @@ export interface ClaudeProvider {
 
 /** `mg_payload` of MMA step 1 (`create_asset_intelligence`). */
 export interface CreateAssetPayload {
-  /** The tool input exactly as Claude returned it, serialised. */
+  /** Every tool input exactly as Claude returned it, serialised as one array. */
   raw: string | null
   error: string | null
   input: { inventory: InventoryItem[]; user_brief: string }

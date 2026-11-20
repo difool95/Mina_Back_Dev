@@ -11,7 +11,12 @@ import {
   SCENE_LIBRARY_NAME,
   briefMessage,
   cdnImage,
+  addUsage,
   imageNote,
+  mergePlans,
+  missingImages,
+  missingImagesReply,
+  planCalls,
   planOutput,
 } from '../../../lib/mmaStep1/mmaCreateAssetsLib.js'
 import type { PickedBrandMemoryPictures } from '../../../types/brandMemory.types.js'
@@ -108,7 +113,7 @@ export async function runCreateAssetIntelligence(
       max_tokens: CREATE_ASSET_DIRECTOR.maxTokens,
       //When the tool_choice is auto Claude will answer in tool_use format if it thinks the tool is needed, otherwise it will answer in text format.
       //This is useful for when you want to use a tool but don't want to force the model to use it.
-      tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+      tool_choice: { type: 'auto' },
       output_config: { effort: CREATE_ASSET_DIRECTOR.effort },
     }
 
@@ -122,11 +127,44 @@ export async function runCreateAssetIntelligence(
     payload.usage = usage
     payload.provider = provider
 
-    const plan = message.content.find((block) => block.type === 'tool_use')?.input as CreateAssetPlan | undefined
-    if (!plan) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
+    //////////////////////THIS CODE WAS CHANGED BY THE BOTTOM BLOCK TO FIX THE PROBLEM OF SONNET RESPONDING WITH PLACEHOLDER///////////
+    // const plan = message.content.find((block) => block.type === 'tool_use')?.input as CreateAssetPlan | undefined
+    // if (!plan) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
+    // payload.raw = JSON.stringify(plan)
+    // payload.output = planOutput(plan, inventory, message.model)
+  //////////////////////THIS CODE WAS CHANGED BY THE BOTTOM BLOCK TO FIX THE PROBLEM OF SONNET RESPONDING WITH PLACEHOLDER///////////
 
-    payload.raw = JSON.stringify(plan)
-    payload.output = planOutput(plan, inventory, message.model)
+
+      //////////////////////THIS CODE IS NEW///////////////////////////////////////////////////////
+    // Every plan call of the answer, not just the first: Sonnet sometimes splits the plan over several.
+    const calls = planCalls(message)
+    if (!calls.length) throw new Error(`The Create Asset Director answered without its plan (${message.stop_reason})`)
+    const plans = calls.map((call) => call.input as CreateAssetPlan)
+
+    // Sonnet sometimes stops after part of the plan, waiting for the result of its call. It is told which pictures are missing and answers once more, in the
+    // same conversation, so it keeps its reading of the pictures.
+    const missing = missingImages(mergePlans(plans), inventory)
+    if (missing.length && message.stop_reason === 'tool_use') {
+      const followUp = await askClaude(
+        {
+          ...request,
+          messages: [
+            ...request.messages,
+            { role: 'assistant', content: message.content },
+            missingImagesReply(calls, missing, inventory.length),
+          ],
+        },
+        [],
+      )
+
+      plans.push(...planCalls(followUp.message).map((call) => call.input as CreateAssetPlan))
+      payload.usage = addUsage(usage, followUp.usage)
+      payload.request = { ...payload.request, follow_up: { missing_images: missing, stop_reason: followUp.message.stop_reason } }
+    }
+
+    payload.raw = JSON.stringify(plans)
+    payload.output = planOutput(mergePlans(plans), inventory, message.model)
+      //////////////////////THIS CODE IS NEW///////////////////////////////////////////////////////
   } catch (error) {
     payload.error = (error as Error).message
     logMmaError(error)
