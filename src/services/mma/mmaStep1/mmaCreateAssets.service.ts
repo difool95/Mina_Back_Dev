@@ -108,7 +108,7 @@ export async function runCreateAssetIntelligence(
       max_tokens: CREATE_ASSET_DIRECTOR.maxTokens,
       //When the tool_choice is auto Claude will answer in tool_use format if it thinks the tool is needed, otherwise it will answer in text format.
       //This is useful for when you want to use a tool but don't want to force the model to use it.
-      tool_choice: { type: 'auto' },
+      tool_choice: { type: 'auto', disable_parallel_tool_use: true },
       output_config: { effort: CREATE_ASSET_DIRECTOR.effort },
     }
 

@@ -50,8 +50,8 @@ export const UPLOAD_EXTENSIONS: Record<string, string> = {
 export const CREATE_ASSET_DIRECTOR = {
   key: 'create_asset_director',
   model: 'claude-sonnet-5',
-  maxTokens: 3000,
-  effort: 'low',
+  maxTokens: 8000,
+  effort: 'medium',
 } as const
 
 //THIS IS THE AGENT OF THE STILL PROMPTER, WHICH WRITES THE CLEAN PROMPT OF MMA STEP 3 OF CREATE MODE FROM THE BRIEF,
